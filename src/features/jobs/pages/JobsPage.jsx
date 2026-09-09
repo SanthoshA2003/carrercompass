@@ -11,24 +11,259 @@ import CreateJobModal from "@/features/jobs/components/CreateJobModal";
 
 const TYPES = ["All", "Full-time", "Part-time", "Internship", "Contract", "Remote"];
 
+const formatSalary = (min, max) => {
+  if (min == null && max == null) {
+    return "";
+  }
+
+  const formatLPA = (value) => {
+    const lpa = value / 100000;
+
+    return Number.isInteger(lpa)
+      ? `${lpa} LPA`
+      : `${lpa.toFixed(1)} LPA`;
+  };
+
+  if (min != null && max != null) {
+    return `${formatLPA(min)} - ${formatLPA(max)}`;
+  }
+
+  if (min != null) {
+    return `${formatLPA(min)}+`;
+  }
+
+  return `Up to ${formatLPA(max)}`;
+};
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState(null);
   const [q, setQ] = useState("");
   const [type, setType] = useState("All");
+
   const [detailJob, setDetailJob] = useState(null);
   const [applyJob, setApplyJob] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+
   const { isAuthed, openAuth } = useAuth();
 
-  const load = () => { setJobs(null); api.jobsList(type !== "All" ? { type } : {}).then(setJobs).catch(() => setJobs([])); };
-  useEffect(load, [type]);
+  // ==================================================
+  // LOAD PUBLIC JOBS
+  // ==================================================
 
-  const filtered = (jobs || []).filter((j) =>
-    !q || j.title.toLowerCase().includes(q.toLowerCase()) || j.company.toLowerCase().includes(q.toLowerCase()) ||
-    (j.skills || []).some((s) => s.toLowerCase().includes(q.toLowerCase())));
+  const load = async () => {
+    try {
+      setJobs(null);
 
-  const openCreate = () => { isAuthed ? setCreateOpen(true) : openAuth(() => setCreateOpen(true)); };
-  const openApply = (job) => { setDetailJob(null); setApplyJob(job); };
+      const response = await api.jobsList();
+
+      console.log("Public Jobs API:", response);
+
+      const items = Array.isArray(response?.items)
+        ? response.items
+        : [];
+
+      // Normalize API response for existing UI
+      const normalizedJobs = items.map((job) => ({
+        ...job,
+
+        // Existing UI expects these names
+        company: job.company_name || "",
+        type: job.job_type || "",
+
+        experience:
+          job.min_experience != null &&
+          job.max_experience != null
+            ? `${job.min_experience}-${job.max_experience} years`
+            : job.min_experience != null
+            ? `${job.min_experience}+ years`
+            : "",
+
+        salary:
+          job.salary_min != null &&
+          job.salary_max != null
+            ? formatSalary(
+                job.salary_min,
+                job.salary_max
+              )
+            : "",
+
+        skills:
+          Array.isArray(job.skills)
+            ? job.skills
+            : Array.isArray(job.required_skills)
+            ? job.required_skills
+            : [],
+      }));
+
+      setJobs(normalizedJobs);
+
+    } catch (error) {
+      console.error("Public Jobs API Error:", error);
+      console.error(
+        "Status:",
+        error.response?.status
+      );
+      console.error(
+        "Response:",
+        error.response?.data
+      );
+
+      setJobs([]);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  // ==================================================
+  // SEARCH + FILTER
+  // ==================================================
+
+  const filtered = (jobs || []).filter((j) => {
+
+    const search = q.toLowerCase();
+
+    const matchesSearch =
+      !search ||
+      j.title?.toLowerCase().includes(search) ||
+      j.company?.toLowerCase().includes(search) ||
+      (j.skills || []).some((skill) =>
+        skill.toLowerCase().includes(search)
+      );
+
+    const matchesType =
+      type === "All" ||
+      (type === "Remote"
+        ? j.work_mode?.toLowerCase() === "remote"
+        : j.job_type?.toLowerCase() ===
+          type.toLowerCase());
+
+    return matchesSearch && matchesType;
+  });
+
+  // ==================================================
+  // CREATE JOB
+  // ==================================================
+
+  const openCreate = () => {
+    isAuthed
+      ? setCreateOpen(true)
+      : openAuth(() => setCreateOpen(true));
+  };
+
+  // ==================================================
+  // OPEN JOB DETAILS
+  // ==================================================
+
+  const openJobDetails = async (job) => {
+  try {
+    console.log("Fetching Public Job Details:", job.id);
+
+    const detail = await api.jobGet(job.id);
+
+    console.log("Public Job Details API:", detail);
+
+    const jobDetails = {
+      id: detail.id,
+
+      title: detail.title || "",
+
+      company: detail.company_name || "",
+
+      location: detail.location || "",
+
+      type: detail.job_type || "",
+
+      work_mode: detail.work_mode || "",
+
+      experience:
+        detail.min_experience != null &&
+        detail.max_experience != null
+          ? `${detail.min_experience}-${detail.max_experience} years`
+          : detail.min_experience != null
+          ? `${detail.min_experience}+ years`
+          : "",
+
+      salary: formatSalary(
+        detail.salary_min,
+        detail.salary_max
+      ),
+
+      skills: Array.isArray(detail.skills)
+        ? detail.skills
+        : [],
+
+      summary: detail.summary || "",
+
+      description: detail.description || "",
+
+      responsibilities: Array.isArray(
+        detail.responsibilities
+      )
+        ? detail.responsibilities
+        : [],
+
+      required_skills: Array.isArray(
+        detail.required_skills
+      )
+        ? detail.required_skills
+        : [],
+
+      requirements: Array.isArray(
+        detail.requirements
+      )
+        ? detail.requirements
+        : [],
+
+      preferred_qualifications: Array.isArray(
+        detail.preferred_qualifications
+      )
+        ? detail.preferred_qualifications
+        : [],
+
+      education: detail.education || "",
+
+      applicants: detail.applicants || 0,
+
+      status: detail.status || "",
+
+      created_at: detail.created_at || "",
+    };
+
+    console.log(
+      "Formatted Job Details:",
+      jobDetails
+    );
+
+    setDetailJob(jobDetails);
+
+  } catch (error) {
+    console.error(
+      "Public Job Details API Error:",
+      error
+    );
+
+    console.error(
+      "Status:",
+      error.response?.status
+    );
+
+    console.error(
+      "Response:",
+      error.response?.data
+    );
+  }
+};
+
+  // ==================================================
+  // APPLY
+  // ==================================================
+
+  const openApply = (job) => {
+    setDetailJob(null);
+    setApplyJob(job);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -81,7 +316,7 @@ export default function JobsPage() {
           <div className="grid gap-5 lg:grid-cols-2">
             {filtered.map((j, i) => (
               <motion.div key={j.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (i % 6) * 0.05 }} whileHover={{ y: -4 }}
-                onClick={() => setDetailJob(j)} className="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-soft transition-shadow hover:shadow-large" data-testid={`job-card-${i}`}>
+                onClick={() => openJobDetails(j)} className="group relative cursor-pointer overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-soft transition-shadow hover:shadow-large" data-testid={`job-card-${i}`}>
                 <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/15 to-cyan-400/10 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

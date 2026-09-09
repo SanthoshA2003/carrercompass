@@ -286,29 +286,33 @@ export const api = {
       .post("/companies/onboard", body)
       .then((r) => r.data),
 
-  // ==================================================
-  // JOBS
-  // ==================================================
+// ==================================================
+// JOBS
+// ==================================================
 
-  jobsList: (params) =>
-    client
-      .get("/jobs", { params })
-      .then((r) => r.data),
+jobsList: (params = {}) =>
+  client
+    .get("/public/jobs", { params })
+    .then((r) => r.data),
 
-  jobGet: (id) =>
-    client
-      .get(`/jobs/${id}`)
-      .then((r) => r.data),
+jobGet: (id) =>
+  client
+    .get(`/public/jobs/${id}`)
+    .then((r) => r.data),
 
-  jobCreate: (body) =>
-    client
-      .post("/jobs", body)
-      .then((r) => r.data),
 
-  jobApply: (id, body) =>
-    client
-      .post(`/jobs/${id}/apply`, body)
-      .then((r) => r.data),
+jobCreate: (body) =>
+  client
+    .post("/jobs", body)
+    .then((r) => r.data),
+
+jobApply: (body) =>
+  client
+    .post("/job-applications", {
+      ...body,
+      status: "submitted",
+    })
+    .then((r) => r.data),
 
   // ==================================================
   // COURSES / SKILLHUB

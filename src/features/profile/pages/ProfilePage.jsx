@@ -2745,10 +2745,14 @@ function ProfileEditor({
   workExperiences,
   onProfileSaved,
 }) {
-  const [p, setP] = useState(null);
 
-  const [saving, setSaving] =
-    useState(false);
+ const [p, setP] = useState(null);
+
+const [resumeFile, setResumeFile] = useState(null);
+const [resumeUploading, setResumeUploading] = useState(false);
+
+const [saving, setSaving] =
+  useState(false);
 
   const [
     profileLoading,
@@ -2846,6 +2850,20 @@ function ProfileEditor({
         data?.career_interests ||
         data?.careerInterests ||
         "",
+
+            resumeFileId:
+      data?.resume_file_id ||
+      data?.resumeFileId ||
+      data?.resume_id ||
+      data?.resumeId ||
+      null,
+
+    resumeUrl:
+      data?.resume_url ||
+      data?.resumeUrl ||
+      data?.resume_link ||
+      data?.resumeLink ||
+      "",
 
       organization:
         data?.organization ||
@@ -3002,286 +3020,330 @@ function ProfileEditor({
     loadProfile();
   }, [user]);
 
-  
+const handleResumeChange = (event) => {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+
+  const extension = file.name
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+
+  if (
+    !allowedTypes.includes(file.type) &&
+    !["pdf", "doc", "docx"].includes(extension)
+  ) {
+    toast.error("Please upload a PDF, DOC or DOCX file.");
+    event.target.value = "";
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error("Resume must be smaller than 5MB.");
+    event.target.value = "";
+    return;
+  }
+
+  setResumeFile(file);
+
+  // Allow selecting same file again
+  event.target.value = "";
+};  
 
   /* ==========================================================
      SAVE PROFILE
   ========================================================== */
 
   const save = async () => {
-    if (!p) {
+  if (!p) {
+    return;
+  }
+
+  /* --------------------------------------------------------
+     PROFILE CATEGORY
+  -------------------------------------------------------- */
+  if (!p.profileCategory) {
+    toast.error("Please select your profile category.");
+    return;
+  }
+
+  /* --------------------------------------------------------
+     STUDENT VALIDATION
+  -------------------------------------------------------- */
+  if (
+    p.profileCategory === "School student" ||
+    p.profileCategory === "College student"
+  ) {
+    if (!p.currentYear) {
+      toast.error("Please enter your current year / class.");
       return;
     }
 
-    /* --------------------------------------------------------
-       PROFILE CATEGORY
-    -------------------------------------------------------- */
+    if (!p.schoolCollege) {
+      toast.error("Please enter your school / college.");
+      return;
+    }
+  }
 
-    if (!p.profileCategory) {
-      toast.error(
-        "Please select your profile category."
+  setSaving(true);
+
+  try {
+    /* ======================================================
+       RESUME UPLOAD
+    ====================================================== */
+
+    let resumeFileId = p.resumeFileId || null;
+
+    if (resumeFile) {
+      setResumeUploading(true);
+
+      const uploadResponse = await api.upload(resumeFile);
+
+      console.log(
+        "RESUME UPLOAD RESPONSE:",
+        uploadResponse
       );
-      return;
-    }
 
-    /* --------------------------------------------------------
-       STUDENT VALIDATION
-    -------------------------------------------------------- */
+      resumeFileId =
+        uploadResponse?.id ||
+        uploadResponse?.file_id ||
+        uploadResponse?.fileId ||
+        uploadResponse?.data?.id ||
+        uploadResponse?.data?.file_id ||
+        uploadResponse?.data?.fileId ||
+        null;
 
-    if (
-      p.profileCategory ===
-        "School student" ||
-      p.profileCategory ===
-        "College student"
-    ) {
-      if (!p.currentYear) {
-        toast.error(
-          "Please enter your current year / class."
+      setResumeUploading(false);
+
+      if (!resumeFileId) {
+        throw new Error(
+          "Resume uploaded but file ID was not returned."
         );
-        return;
-      }
-
-      if (!p.schoolCollege) {
-        toast.error(
-          "Please enter your school / college."
-        );
-        return;
       }
     }
 
-    /* --------------------------------------------------------
-       PROFESSIONAL
-    -------------------------------------------------------- */
+    /* ======================================================
+       PROFILE BODY
+    ====================================================== */
 
-    /*
-     * IMPORTANT:
-     *
-     * Work experience is handled separately
-     * through the Work Experience card.
-     *
-     * Therefore we do NOT force the work fields
-     * here when the user is only saving profile.
-     */
-
-    setSaving(true);
-
-    try {
     const body = {
-  dob: p.dob || null,
+      dob: p.dob || null,
 
-  profile_category:
-    p.profileCategory || null,
+      profile_category:
+        p.profileCategory || null,
 
-  education:
-    p.education || null,
+      education:
+        p.education || null,
 
-  class_year:
-    p.currentYear || null,
+      class_year:
+        p.currentYear || null,
 
-  institution:
-    p.schoolCollege || null,
+      institution:
+        p.schoolCollege || null,
 
-  career_goal:
-    p.careerGoal || null,
+      career_goal:
+        p.careerGoal || null,
 
-  career_interests:
-    p.careerInterests || null,
+      career_interests:
+        p.careerInterests || null,
 
-  profile_photo_file_id:
-    photoFileId || null,
-};
+      profile_photo_file_id:
+        photoFileId || null,
 
-     
-      /* ------------------------------------------------------
-         WORKING PROFESSIONAL
-      ------------------------------------------------------ */
+      // Resume
+      resume_file_id:
+        resumeFileId || null,
+    };
 
+    console.log(
+      "PROFILE SAVE REQUEST:",
+      body
+    );
 
-      console.log(
-        "PROFILE SAVE REQUEST:",
-        body
-      );
+    /* ======================================================
+       CREATE / UPDATE PROFILE
+    ====================================================== */
 
-      let response;
+    let response;
 
-      if (profileExists) {
-        response =
-          await api.updateProfile(
-            body
-          );
-      } else {
-        response =
-          await api.createProfile(
-            body
-          );
+    if (profileExists) {
+      response = await api.updateProfile(body);
+    } else {
+      response = await api.createProfile(body);
 
-        setProfileExists(true);
-      }
-
-      console.log(
-        "PROFILE SAVE RESPONSE:",
-        response
-      );
-
-      /*
-       * PROFILE SCORE REFRESH
-       * ---------------------
-       * The profile-score endpoint calculates the score from the
-       * latest saved profile. Refresh it immediately after saving
-       * so the score shown in the hero card changes without a page
-       * refresh.
-       */
-      if (onProfileSaved) {
-  await onProfileSaved();
-}
-
-      const normalized =
-        normalizeProfile(
-          response || body,
-          user
-        );
-
-      /*
-       * Preserve local values when
-       * backend does not return every field.
-       */
-
-      setP({
-        ...p,
-        ...normalized,
-
-        name:
-          user?.name ||
-          p.name ||
-          "",
-
-        dob:
-          normalized.dob ||
-          p.dob ||
-          "",
-
-        profileCategory:
-          normalized.profileCategory ||
-          p.profileCategory ||
-          "",
-
-        currentYear:
-          normalized.currentYear ||
-          p.currentYear ||
-          "",
-
-        schoolCollege:
-          normalized.schoolCollege ||
-          p.schoolCollege ||
-          "",
-
-        yearsExperience:
-          normalized.yearsExperience !==
-          ""
-            ? normalized.yearsExperience
-            : p.yearsExperience,
-
-        role:
-          normalized.role ||
-          p.role ||
-          "",
-
-        education:
-          normalized.education ||
-          p.education ||
-          "",
-
-        careerGoal:
-          normalized.careerGoal ||
-          p.careerGoal ||
-          "",
-
-        careerInterests:
-          normalized.careerInterests ||
-          p.careerInterests ||
-          "",
-
-        organization:
-          normalized.organization ||
-          p.organization ||
-          "",
-
-        location:
-          normalized.location ||
-          p.location ||
-          "",
-
-        locationType:
-          normalized.locationType ||
-          p.locationType ||
-          "",
-
-        employmentType:
-          normalized.employmentType ||
-          p.employmentType ||
-          "",
-
-        currentlyWorking:
-          normalized.currentlyWorking ??
-          p.currentlyWorking ??
-          false,
-
-        startMonth:
-          normalized.startMonth ||
-          p.startMonth ||
-          "",
-
-        startYear:
-          normalized.startYear ||
-          p.startYear ||
-          "",
-
-        highlights:
-          normalized.highlights ||
-          p.highlights ||
-          "",
-      });
-
-      /*
-       * AFTER SAVE:
-       *
-       * Profile becomes read-only.
-       *
-       * User must click Edit again.
-       */
-
-      setDraftBeforeEdit(
-        null
-      );
-
-      setIsEditing(false);
-
-      toast.success(
-        profileExists
-          ? "Profile updated successfully"
-          : "Profile created successfully"
-      );
-    } catch (error) {
-      console.error(
-        "PROFILE SAVE ERROR:",
-        error
-      );
-
-      const message =
-        error?.response?.data
-          ?.detail ||
-        error?.response?.data
-          ?.message ||
-        error?.response?.data
-          ?.error ||
-        error?.message ||
-        "Could not save profile";
-
-      toast.error(message);
-    } finally {
-      setSaving(false);
+      setProfileExists(true);
     }
-  };
+
+    console.log(
+      "PROFILE SAVE RESPONSE:",
+      response
+    );
+
+    /* ======================================================
+       REFRESH PROFILE SCORE
+    ====================================================== */
+
+    if (onProfileSaved) {
+      await onProfileSaved();
+    }
+
+    /* ======================================================
+       UPDATE LOCAL PROFILE
+    ====================================================== */
+
+    const normalized = normalizeProfile(
+      response || body,
+      user
+    );
+
+    setP({
+      ...p,
+      ...normalized,
+
+      name:
+        user?.name ||
+        p.name ||
+        "",
+
+      dob:
+        normalized.dob ||
+        p.dob ||
+        "",
+
+      profileCategory:
+        normalized.profileCategory ||
+        p.profileCategory ||
+        "",
+
+      currentYear:
+        normalized.currentYear ||
+        p.currentYear ||
+        "",
+
+      schoolCollege:
+        normalized.schoolCollege ||
+        p.schoolCollege ||
+        "",
+
+      yearsExperience:
+        normalized.yearsExperience !== ""
+          ? normalized.yearsExperience
+          : p.yearsExperience,
+
+      role:
+        normalized.role ||
+        p.role ||
+        "",
+
+      education:
+        normalized.education ||
+        p.education ||
+        "",
+
+      careerGoal:
+        normalized.careerGoal ||
+        p.careerGoal ||
+        "",
+
+      careerInterests:
+        normalized.careerInterests ||
+        p.careerInterests ||
+        "",
+
+      organization:
+        normalized.organization ||
+        p.organization ||
+        "",
+
+      location:
+        normalized.location ||
+        p.location ||
+        "",
+
+      locationType:
+        normalized.locationType ||
+        p.locationType ||
+        "",
+
+      employmentType:
+        normalized.employmentType ||
+        p.employmentType ||
+        "",
+
+      currentlyWorking:
+        normalized.currentlyWorking ??
+        p.currentlyWorking ??
+        false,
+
+      startMonth:
+        normalized.startMonth ||
+        p.startMonth ||
+        "",
+
+      startYear:
+        normalized.startYear ||
+        p.startYear ||
+        "",
+
+      highlights:
+        normalized.highlights ||
+        p.highlights ||
+        "",
+
+      // Resume
+      resumeFileId:
+        normalized.resumeFileId ||
+        resumeFileId ||
+        null,
+
+      resumeUrl:
+        normalized.resumeUrl ||
+        p.resumeUrl ||
+        "",
+    });
+
+    /* ======================================================
+       AFTER SAVE
+    ====================================================== */
+
+    setResumeFile(null);
+    setResumeUploading(false);
+    setDraftBeforeEdit(null);
+    setIsEditing(false);
+
+    toast.success(
+      profileExists
+        ? "Profile updated successfully"
+        : "Profile created successfully"
+    );
+  } catch (error) {
+    console.error(
+      "PROFILE SAVE ERROR:",
+      error
+    );
+
+    setResumeUploading(false);
+
+    const message =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Could not save profile";
+
+    toast.error(message);
+  } finally {
+    setSaving(false);
+    setResumeUploading(false);
+  }
+};
 
   /* ==========================================================
      PROFILE COMPLETION
@@ -3302,12 +3364,17 @@ function ProfileEditor({
   ];
 
   let total = basicFields.length;
+
   let completed = basicFields.filter(
     (value) =>
       value !== null &&
       value !== undefined &&
       String(value).trim() !== ""
   ).length;
+
+  /* ==========================================================
+     STUDENT
+  ========================================================== */
 
   if (
     p.profileCategory === "School student" ||
@@ -3324,6 +3391,10 @@ function ProfileEditor({
     }
   }
 
+  /* ==========================================================
+     WORKING PROFESSIONAL
+  ========================================================== */
+
   if (p.profileCategory === "Working professional") {
     total += 1;
 
@@ -3333,6 +3404,16 @@ function ProfileEditor({
     ) {
       completed += 1;
     }
+  }
+
+  /* ==========================================================
+     RESUME
+  ========================================================== */
+
+  total += 1;
+
+  if (p.resumeFileId) {
+    completed += 1;
   }
 
   return Math.round(
@@ -3852,6 +3933,103 @@ function ProfileEditor({
                 data-testid="profile-interests"
               />
             </div>
+
+            {/* RESUME */}
+
+<div className="sm:col-span-2">
+  <PLabel>
+    Resume
+  </PLabel>
+
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      
+      <div>
+        <p className="font-semibold text-slate-800">
+          {resumeFile
+            ? resumeFile.name
+            : p.resumeUrl
+              ? "Resume uploaded"
+              : "Upload your resume"}
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          PDF, DOC or DOCX • Maximum 5MB
+        </p>
+      </div>
+
+      <label
+        className="
+          inline-flex
+          cursor-pointer
+          items-center
+          justify-center
+          rounded-full
+          border
+          border-blue-200
+          bg-white
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-blue-600
+          transition
+          hover:bg-blue-50
+        "
+      >
+        {resumeUploading
+          ? "Uploading..."
+          : resumeFile || p.resumeUrl
+            ? "Change Resume"
+            : "Choose Resume"}
+
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="hidden"
+          onChange={handleResumeChange}
+          disabled={saving || resumeUploading}
+        />
+      </label>
+    </div>
+
+    {resumeFile && (
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-white px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-slate-700">
+            {resumeFile.name}
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+            {(resumeFile.size / 1024 / 1024).toFixed(2)} MB
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setResumeFile(null)}
+          className="ml-3 text-sm font-medium text-red-500 hover:text-red-600"
+          disabled={saving || resumeUploading}
+        >
+          Remove
+        </button>
+      </div>
+    )}
+
+    {!resumeFile && p.resumeUrl && (
+      <div className="mt-3">
+        <a
+          href={p.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
+          View current resume
+        </a>
+      </div>
+    )}
+  </div>
+</div>
           </div>
 
           {/* ==================================================
