@@ -306,6 +306,11 @@ jobCreate: (body) =>
     .post("/jobs", body)
     .then((r) => r.data),
 
+    jobApplicationsList: (params = {}) =>
+  client
+    .get("/job-applications", { params })
+    .then((r) => r.data),
+
 jobApply: (body) =>
   client
     .post("/job-applications", {

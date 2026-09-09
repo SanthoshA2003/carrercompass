@@ -149,6 +149,61 @@ function ScoreRing({
       event.target.value = "";
     }
   };
+
+  const fetchApplicationResume = async () => {
+  try {
+    const response = await api.jobApplications();
+
+    console.log("JOB APPLICATIONS RESPONSE:", response);
+
+    // API may return an array or an object containing applications
+    const applications = Array.isArray(response)
+      ? response
+      : response?.applications ||
+        response?.items ||
+        response?.data ||
+        [];
+
+    if (!Array.isArray(applications) || applications.length === 0) {
+      setApplicationResume(null);
+      return;
+    }
+
+    // Get the latest application
+    const latestApplication = [...applications].sort(
+      (a, b) =>
+        new Date(b.created_at || 0) -
+        new Date(a.created_at || 0)
+    )[0];
+
+    const resumeUrl =
+      latestApplication?.resume_link ||
+      latestApplication?.resume_url ||
+      latestApplication?.resumeLink ||
+      "";
+
+    const resumeFileId =
+      latestApplication?.resume_file_id ||
+      latestApplication?.resumeFileId ||
+      null;
+
+    if (resumeUrl) {
+      setApplicationResume({
+        url: resumeUrl,
+        fileId: resumeFileId,
+      });
+    } else {
+      setApplicationResume(null);
+    }
+  } catch (error) {
+    console.error(
+      "JOB APPLICATION RESUME FETCH ERROR:",
+      error
+    );
+
+    setApplicationResume(null);
+  }
+};
   return (
     <div
       className="flex shrink-0 flex-col items-center"
@@ -2750,6 +2805,7 @@ function ProfileEditor({
 
 const [resumeFile, setResumeFile] = useState(null);
 const [resumeUploading, setResumeUploading] = useState(false);
+const [applicationResume, setApplicationResume] = useState(null);
 
 const [saving, setSaving] =
   useState(false);
@@ -2851,19 +2907,26 @@ const [saving, setSaving] =
         data?.careerInterests ||
         "",
 
-            resumeFileId:
-      data?.resume_file_id ||
-      data?.resumeFileId ||
-      data?.resume_id ||
-      data?.resumeId ||
-      null,
+           resumeFileId:
+  data?.resume_file_id ||
+  data?.resumeFileId ||
+  data?.resume_id ||
+  data?.resumeId ||
+  null,
 
-    resumeUrl:
-      data?.resume_url ||
-      data?.resumeUrl ||
-      data?.resume_link ||
-      data?.resumeLink ||
-      "",
+resumeFileName:
+  data?.resume_file_name ||
+  data?.resumeFileName ||
+  data?.original_filename ||
+  data?.file_name ||
+  "",
+
+resumeUrl:
+  data?.resume_url ||
+  data?.resumeUrl ||
+  data?.resume_link ||
+  data?.resumeLink ||
+  "",
 
       organization:
         data?.organization ||
@@ -3542,15 +3605,14 @@ const handleResumeChange = (event) => {
             !isEditing && (
               <button
                 type="button"
-                onClick={() => {
-                  setDraftBeforeEdit({
-                    ...p,
-                  });
+              onClick={() => {
+  setDraftBeforeEdit({
+    ...p,
+  });
 
-                  setIsEditing(
-                    true
-                  );
-                }}
+  setResumeFile(null);
+  setIsEditing(true);
+}}
                 data-testid="profile-edit"
                 className="
                   inline-flex
@@ -3647,19 +3709,43 @@ const handleResumeChange = (event) => {
             }
           />
 
-          <ProfileValue
-            label="Career Goal"
-            value={
-              p.careerGoal
-            }
-          />
+        <ProfileValue
+  label="Career Goal"
+  value={p.careerGoal}
+/>
 
-          <ProfileValue
-            label="Career Interests"
-            value={
-              p.careerInterests
-            }
-          />
+<ProfileValue
+  label="Career Interests"
+  value={p.careerInterests}
+/>
+
+{/* RESUME - VIEW MODE */}
+<div className="sm:col-span-2">
+  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+    Resume
+  </div>
+
+  {p.resumeUrl ? (
+    <div className="flex items-center gap-4">
+      <span className="max-w-[350px] truncate text-[15px] font-semibold text-slate-800">
+        {p.resumeFileName || "No resume uploaded"}
+      </span>
+
+      <a
+        href={p.resumeUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100 hover:text-blue-700"
+      >
+        View Resume
+      </a>
+    </div>
+  ) : (
+    <span className="text-[15px] font-medium text-slate-500">
+      No resume uploaded
+    </span>
+  )}
+</div>
         </div>
       ) : (
         /* ==================================================
@@ -3934,54 +4020,54 @@ const handleResumeChange = (event) => {
               />
             </div>
 
-            {/* RESUME */}
-
+    {/* RESUME - EDIT MODE */}
 <div className="sm:col-span-2">
-  <PLabel>
-    Resume
-  </PLabel>
+  <PLabel>Resume</PLabel>
 
   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      
-      <div>
-        <p className="font-semibold text-slate-800">
-          {resumeFile
-            ? resumeFile.name
-            : p.resumeUrl
-              ? "Resume uploaded"
-              : "Upload your resume"}
-        </p>
+    <div className="flex flex-wrap items-center gap-3">
 
-        <p className="mt-1 text-xs text-slate-500">
-          PDF, DOC or DOCX • Maximum 5MB
-        </p>
-      </div>
+      {/* CURRENT / NEW FILE NAME */}
+      <span className="max-w-[350px] truncate text-[15px] font-semibold text-slate-800">
+        {resumeFile?.name ||
+          p.resumeFileName ||
+          "No resume uploaded"}
+      </span>
 
+      {/* VIEW CURRENT RESUME */}
+      {p.resumeUrl && !resumeFile && (
+        <a
+          href={p.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100 hover:text-blue-700"
+        >
+          View Resume
+        </a>
+      )}
+
+      {/* CHANGE RESUME - ONLY EDIT MODE */}
       <label
         className="
           inline-flex
           cursor-pointer
           items-center
-          justify-center
           rounded-full
           border
-          border-blue-200
+          border-slate-200
           bg-white
-          px-5
-          py-2.5
+          px-4
+          py-2
           text-sm
           font-semibold
-          text-blue-600
+          text-slate-700
           transition
+          hover:border-blue-300
           hover:bg-blue-50
+          hover:text-blue-600
         "
       >
-        {resumeUploading
-          ? "Uploading..."
-          : resumeFile || p.resumeUrl
-            ? "Change Resume"
-            : "Choose Resume"}
+        Change Resume
 
         <input
           type="file"
@@ -3993,40 +4079,11 @@ const handleResumeChange = (event) => {
       </label>
     </div>
 
+    {/* NEW FILE MESSAGE */}
     {resumeFile && (
-      <div className="mt-3 flex items-center justify-between rounded-xl bg-white px-4 py-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-slate-700">
-            {resumeFile.name}
-          </p>
-
-          <p className="mt-1 text-xs text-slate-400">
-            {(resumeFile.size / 1024 / 1024).toFixed(2)} MB
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setResumeFile(null)}
-          className="ml-3 text-sm font-medium text-red-500 hover:text-red-600"
-          disabled={saving || resumeUploading}
-        >
-          Remove
-        </button>
-      </div>
-    )}
-
-    {!resumeFile && p.resumeUrl && (
-      <div className="mt-3">
-        <a
-          href={p.resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-        >
-          View current resume
-        </a>
-      </div>
+      <p className="mt-2 text-xs font-medium text-blue-600">
+        New resume selected. Click "Update Profile" to save it.
+      </p>
     )}
   </div>
 </div>
@@ -4081,23 +4138,17 @@ const handleResumeChange = (event) => {
             {profileExists && (
               <button
                 type="button"
-                onClick={() => {
-                  if (
-                    draftBeforeEdit
-                  ) {
-                    setP(
-                      draftBeforeEdit
-                    );
-                  }
+              onClick={() => {
+  if (draftBeforeEdit) {
+    setP(draftBeforeEdit);
+  }
 
-                  setDraftBeforeEdit(
-                    null
-                  );
+  setResumeFile(null);
+  setResumeUploading(false);
+  setDraftBeforeEdit(null);
+  setIsEditing(false);
+}}
 
-                  setIsEditing(
-                    false
-                  );
-                }}
                 disabled={saving}
                 className="
                   inline-flex

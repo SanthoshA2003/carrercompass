@@ -274,9 +274,9 @@ export default function JobsPage() {
           <div className="flex items-center gap-3">
             <Link to="/organizations" className="hidden items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 sm:flex"><Building2 className="h-4 w-4" /> Organisations</Link>
             <Link to="/" className="hidden items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 sm:flex"><ArrowLeft className="h-4 w-4" /> Home</Link>
-            <button onClick={openCreate} data-testid="create-job-header" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-glow">
+            {/* <button onClick={openCreate} data-testid="create-job-header" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-glow">
               <PlusCircle className="h-4 w-4" /> Create New Job
-            </button>
+            </button> */}
           </div>
         </div>
       </header>
