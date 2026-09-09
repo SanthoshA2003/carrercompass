@@ -58,7 +58,7 @@ export default function Hero() {
         {/* Left */}
         <motion.div style={{ y: contentY }} className="max-w-2xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <SectionTag>Career Operating System</SectionTag>
+
           </motion.div>
 
           <h1 className="mt-3 text-[42px] font-black leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-[64px]">
