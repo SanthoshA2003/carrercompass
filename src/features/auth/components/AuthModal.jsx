@@ -27,6 +27,7 @@ const handleGoogleLogin = () => {
   const allowedFrontends = [
     "http://localhost:3000",
     "https://careercampus-bd89.onrender.com",
+    "https://carrercompass-n2ms.onrender.com",
   ];
 
   if (!allowedFrontends.includes(frontendUrl)) {
