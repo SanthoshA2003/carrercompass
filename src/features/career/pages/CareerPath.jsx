@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowUp,
   ArrowLeft,
-  ArrowRight,
+  Menu,
   Check,
   CheckCircle2,
   GraduationCap,
@@ -14,6 +14,11 @@ import {
   ChevronRight,
   Clock,
   Loader2,
+  Plus,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+  History,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Background from "@/features/career/components/Background";
@@ -96,10 +101,24 @@ const getToken = () => {
 // ============================================================
 export default function CareerPath() {
   const [goal, setGoal] = useState("");
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
 
-  const [careerPersona, setCareerPersona] = useState(null);
-  const [error, setError] = useState("");
+const [careerPersona, setCareerPersona] = useState(null);
+const [error, setError] = useState("");
+
+// ==========================================================
+// CAREER HISTORY
+// ==========================================================
+
+const [careerHistory, setCareerHistory] = useState([]);
+const [historyLoading, setHistoryLoading] = useState(false);
+
+// Selected history item
+const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+
+// Sidebar open/close
+const [historyOpen, setHistoryOpen] = useState(false);
+
   const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
   const [enrollingCourseId, setEnrollingCourseId] = useState(null);
 
@@ -114,6 +133,12 @@ export default function CareerPath() {
 
   const token = getToken();
   const navigate = useNavigate();
+
+  useEffect(() => {
+  if (token) {
+    loadCareerHistory();
+  }
+}, [token]);
 
 
   const loadMyEnrollments = async () => {
@@ -164,6 +189,42 @@ export default function CareerPath() {
       console.error("MY ENROLLMENTS ERROR:", err);
     }
   };
+
+  // ==========================================================
+// OPEN SAVED CAREER HISTORY
+// ==========================================================
+
+const openCareerHistory = (item) => {
+  if (!item?.result) {
+    return;
+  }
+
+  console.log("Opening saved career:", item);
+
+  setSelectedHistoryId(item.id);
+
+  // Put previous search back into input
+  setGoal(item.goal || "");
+
+  // Show saved result
+  setCareerPersona({
+    result: item.result,
+    history_id: item.id,
+    from_history: true,
+  });
+
+  // Reset course section
+  setShowCourses(false);
+  setCourses([]);
+  setCourseError("");
+  setError("");
+
+  // Scroll to result
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
 
   const enroll = async (courseId) => {
     if (!token) {
@@ -417,16 +478,83 @@ const updateCoursePreference = async (wantCourses) => {
     return data;
   };
 
+
+  // ==========================================================
+// NORMALIZE CAREER GOAL
+// Used to compare current search with previous searches.
+// ==========================================================
+
+const normalizeCareerGoal = (value) => {
+  if (!value) return "";
+
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[?.!,]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/^i want to become an?\s+/i, "")
+    .replace(/^i want to become\s+/i, "")
+    .replace(/^i want to be an?\s+/i, "")
+    .replace(/^i want to be\s+/i, "")
+    .replace(/^i want an?\s+/i, "")
+    .replace(/^i want\s+/i, "")
+    .replace(/^become an?\s+/i, "")
+    .replace(/^become\s+/i, "")
+    .replace(/^became an?\s+/i, "")
+    .replace(/^became\s+/i, "")
+    .replace(/^to become an?\s+/i, "")
+    .replace(/^to become\s+/i, "")
+    .trim();
+};
+
+// ==========================================================
+// LOAD CAREER HISTORY
+// ==========================================================
+
+const loadCareerHistory = async () => {
+  if (!token) return;
+
+  try {
+    setHistoryLoading(true);
+
+    const data = await api.careerPersonaHistory();
+
+    console.log(
+      "CAREER PERSONA HISTORY:",
+      data
+    );
+
+    const items = Array.isArray(data)
+      ? data
+      : data?.items || [];
+
+    setCareerHistory(items);
+
+  } catch (err) {
+    console.error(
+      "CAREER HISTORY ERROR:",
+      err
+    );
+
+    setCareerHistory([]);
+  } finally {
+    setHistoryLoading(false);
+  }
+};
+
   // ==========================================================
   // SEND CAREER GOAL
   // ==========================================================
 
   const send = async () => {
-    setError("");
-    setCourseError("");
-    setShowCourses(false);
+  setError("");
+  setCourseError("");
+  setShowCourses(false);
 
-    if (!goal.trim()) {
+  // New search = remove selected history highlight
+  setSelectedHistoryId(null);
+
+  if (!goal.trim()) {
       setError("Please enter your career goal.");
       return;
     }
@@ -438,22 +566,110 @@ const updateCoursePreference = async (wantCourses) => {
       return;
     }
 
-    try {
-      setLoading(true);
+   try {
+  setLoading(true);
 
-      // ======================================================
-      // STEP 1
-      // CREATE CAREER PERSONA
-      // ======================================================
+  const searchGoal = goal.trim();
 
-      console.log(
-        "Creating career persona..."
-      );
+  // ======================================================
+  // STEP 1
+  // CHECK DATABASE HISTORY FIRST
+  // ======================================================
 
-      const postResponse =
-        await createCareerPersona(
-          goal.trim()
+  console.log(
+    "Checking career history before calling AI..."
+  );
+
+  let history = careerHistory;
+
+  try {
+    const historyResponse =
+      await api.careerPersonaHistory();
+
+    history = Array.isArray(historyResponse)
+      ? historyResponse
+      : historyResponse?.items || [];
+
+    setCareerHistory(history);
+
+  } catch (historyError) {
+    console.error(
+      "Unable to load career history:",
+      historyError
+    );
+  }
+
+  // ======================================================
+  // STEP 2
+  // FIND EXISTING CAREER
+  // ======================================================
+
+  const normalizedSearch =
+    normalizeCareerGoal(searchGoal);
+
+  console.log(
+    "NORMALIZED SEARCH:",
+    normalizedSearch
+  );
+
+  const existingHistory =
+    history.find((item) => {
+      const historyGoal =
+        normalizeCareerGoal(item.goal);
+
+      const historyCareer =
+        normalizeCareerGoal(
+          item.result?.career
         );
+
+      return (
+        historyGoal === normalizedSearch ||
+        historyCareer === normalizedSearch
+      );
+    });
+
+  // ======================================================
+  // STEP 3
+  // HISTORY FOUND → DON'T CALL AI
+  // ======================================================
+
+  if (existingHistory?.result) {
+
+    console.log(
+      "✅ EXISTING CAREER FOUND IN DATABASE"
+    );
+
+    console.log(
+      "Using saved career result:",
+      existingHistory
+    );
+
+    setCareerPersona({
+      result: existingHistory.result,
+      history_id: existingHistory.id,
+      from_history: true,
+    });
+
+    return;
+  }
+
+  // ======================================================
+  // STEP 4
+  // NO HISTORY → CALL AI
+  // ======================================================
+
+  console.log(
+    "❌ Career not found in history."
+  );
+
+  console.log(
+    "🤖 Calling AI to generate new career persona..."
+  );
+
+  const postResponse =
+    await createCareerPersona(
+      searchGoal
+    );
 
       console.log(
         "CAREER PERSONA CREATED:",
@@ -506,9 +722,10 @@ const updateCoursePreference = async (wantCourses) => {
       // SHOW RESULT
       // ======================================================
 
-      setCareerPersona(
-        getResponse
-      );
+      setCareerPersona(getResponse);
+
+// Refresh career history
+await loadCareerHistory();
     } catch (err) {
       console.error("CAREER PERSONA ERROR:", err);
 
@@ -551,28 +768,269 @@ const updateCoursePreference = async (wantCourses) => {
   // UI
   // ==========================================================
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-200">
+ return (
+  <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-200">
 
-      <Background />
+    <Background />
 
-      {/* ======================================================
-          BACK BUTTON
-      ====================================================== */}
+{/* ======================================================
+    CAREER JOURNEYS SIDEBAR (REDESIGNED)
+====================================================== */}
+<aside
+  className={`
+    fixed left-0 top-0 z-50 h-screen
+    w-[320px] 
+    border-r border-white/[0.08]
+    bg-[#050816]/95
+    backdrop-blur-2xl
+    shadow-[20px_0_70px_rgba(0,0,0,0.5)]
+    transition-transform duration-300 ease-out
+    ${historyOpen ? "translate-x-0" : "-translate-x-full"}
+  `}
+>
+  {/* HEADER SECTION */}
+  <div className="border-b border-white/[0.07] px-6 py-6">
+    <Link
+      to="/"
+      className="group mb-6 inline-flex items-center gap-2 text-[13px] font-medium text-slate-400 transition-colors hover:text-white"
+    >
+      <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+      <span>Back to Dashboard</span>
+    </Link>
+
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold tracking-tight text-white">
+            History
+          </h2>
+          <p className="text-xs font-medium text-slate-500">
+            Saved career paths
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setHistoryOpen(false)}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white"
+      >
+        <PanelLeftClose className="h-5 w-5" />
+      </button>
+    </div>
+  </div>
+
+  {/* NEW SEARCH ACTION */}
+  <div className="px-4 py-6">
+    <button
+      type="button"
+      onClick={() => {
+        setGoal("");
+        setCareerPersona(null);
+        setSelectedHistoryId(null);
+        setShowCourses(false);
+        setCourses([]);
+        setError("");
+        setCourseError("");
+      }}
+      className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-all hover:border-cyan-400/40 hover:bg-white/[0.05]"
+    >
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg group-hover:scale-105 transition-transform">
+        <Plus className="h-6 w-6" />
+      </div>
+      <div className="text-left">
+        <p className="text-[15px] font-bold text-white">New Search</p>
+        <p className="text-xs text-slate-500">Explore another path</p>
+      </div>
+      <ChevronRight className="ml-auto h-5 w-5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+    </button>
+  </div>
+
+  {/* RECENT JOURNEYS LABEL */}
+  <div className="flex items-center justify-between px-6 pb-4">
+    <div className="flex items-center gap-2">
+      <History className="h-4 w-4 text-slate-500" />
+      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+        Recent Journeys
+      </span>
+    </div>
+    {careerHistory.length > 0 && (
+      <span className="rounded-full bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-bold text-slate-400 border border-white/[0.05]">
+        {careerHistory.length}
+      </span>
+    )}
+  </div>
+
+  {/* LIST SECTION */}
+<div className="career-history-scroll h-[calc(100vh-320px)] overflow-y-auto px-4 pb-10">
+      {historyLoading ? (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 w-full animate-pulse rounded-2xl bg-white/[0.03]" />
+        ))}
+      </div>
+    ) : careerHistory.length === 0 ? (
+      <div className="mt-10 text-center px-6">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.02] text-slate-600">
+          <BookOpen className="h-6 w-6" />
+        </div>
+        <p className="text-sm font-medium text-slate-500 leading-relaxed">
+          Your AI-generated career paths will appear here.
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {careerHistory.map((item) => {
+          const selected = selectedHistoryId === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => openCareerHistory(item)}
+              className={`
+                group relative flex w-full flex-col gap-1 rounded-2xl border p-4 transition-all duration-200
+                ${selected 
+                  ? "border-cyan-400/40 bg-cyan-400/[0.08] shadow-[0_8px_20px_rgba(0,0,0,0.2)]" 
+                  : "border-transparent bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.06]"
+                }
+              `}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`text-[14px] font-bold truncate pr-2 ${selected ? "text-white" : "text-slate-200 group-hover:text-white"}`}>
+                  {item.goal || "Career Search"}
+                </span>
+                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${selected ? "text-cyan-400 translate-x-0.5" : "text-slate-600 group-hover:text-slate-400"}`} />
+              </div>
+              
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-cyan-400" : "bg-slate-600"}`} />
+                <span className="truncate text-xs font-medium text-slate-500 group-hover:text-slate-400">
+                  {item.result?.career || "Generating..."}
+                </span>
+              </div>
+
+              {selected && (
+                <motion.div 
+                  layoutId="active-pill"
+                  className="absolute left-0 top-4 h-8 w-1 rounded-r-full bg-cyan-400" 
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</aside>
+
+
+    {/* ======================================================
+    COLLAPSED CAREER JOURNEYS CONTROL
+====================================================== */}
+
+{!historyOpen && (
+  <div className="fixed left-5 top-5 z-50">
+
+    <div
+      className="
+        flex items-center gap-2
+        rounded-2xl
+        border border-white/[0.08]
+        bg-[#070c1d]/90
+        p-1.5
+        shadow-[0_10px_40px_rgba(0,0,0,0.35)]
+        backdrop-blur-2xl
+      "
+    >
+
+      {/* MYMENTOR */}
 
       <Link
         to="/"
-        className="absolute left-6 top-6 z-30 flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+        className="
+          flex items-center gap-2
+          rounded-xl
+          px-3 py-2
+          text-xs font-semibold
+          text-slate-400
+          transition-all duration-200
+          hover:bg-white/[0.05]
+          hover:text-white
+        "
       >
-        <ArrowLeft className="h-4 w-4" />
-        MyMentor
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>MyMentor</span>
       </Link>
+
+
+      {/* DIVIDER */}
+
+      <div className="h-5 w-px bg-white/[0.08]" />
+
+
+      {/* OPEN CAREER JOURNEYS */}
+
+      <button
+        type="button"
+        onClick={() => setHistoryOpen(true)}
+        aria-label="Open Career Journeys"
+        className="
+          group
+          flex items-center gap-2.5
+          rounded-xl
+          px-2.5 py-2
+          text-xs font-semibold
+          text-slate-300
+          transition-all duration-200
+          hover:bg-white/[0.06]
+          hover:text-white
+        "
+      >
+
+        <span
+          className="
+            flex h-7 w-7
+            items-center justify-center
+            rounded-lg
+            border border-cyan-400/20
+            bg-gradient-to-br
+            from-cyan-400/10
+            to-violet-500/10
+            text-cyan-300
+            transition-transform duration-200
+            group-hover:scale-105
+          "
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </span>
+
+        <span>Career Journeys</span>
+
+      </button>
+
+    </div>
+
+  </div>
+)}
+  
 
       {/* ======================================================
           MAIN
       ====================================================== */}
 
-      <div className="relative z-10 mx-auto min-h-screen max-w-6xl px-4 py-24">
+      <div
+  className={`
+    relative z-10 min-h-screen max-w-6xl px-4 py-24
+    transition-all duration-300
+    ${
+     historyOpen
+  ? "lg:ml-[290px] lg:mr-auto"
+  : "mx-auto"
+    }
+  `}
+>
 
         {/* ====================================================
             HERO

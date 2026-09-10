@@ -223,6 +223,26 @@ export const api = {
     .get("/career-persona/course-suggestions")
     .then((r) => r.data),
 
+
+    // ==================================================
+// CAREER PERSONA HISTORY
+// ==================================================
+
+careerPersonaHistory: () =>
+  client
+    .get("/career-persona-history/me")
+    .then((r) => r.data),
+
+careerPersonaHistoryById: (historyId) =>
+  client
+    .get(`/career-persona-history/me/${historyId}`)
+    .then((r) => r.data),
+
+careerPersonaHistoryLatest: () =>
+  client
+    .get("/career-persona-history/me/latest")
+    .then((r) => r.data),
+
   // ==================================================
   // MENTORS
   // ==================================================
