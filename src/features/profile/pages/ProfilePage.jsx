@@ -675,37 +675,40 @@ const [form, setForm] = useState({
       setSaving(true);
 
       const payload = {
-        company_name:
-          form.organization.trim(),
+  company_name:
+    form.organization.trim(),
 
-        job_title:
-          form.role.trim(),
+  job_title:
+    form.role.trim(),
 
-        employment_type:
-          form.employmentType,
+  years_experience:
+    Number(form.yearsExperience),
 
-        location:
-          form.location.trim(),
+  employment_type:
+    form.employmentType,
 
-        start_date:
-          `${form.startYear}-${String(
-            form.startMonth
-          ).padStart(2, "0")}-01`,
+  location:
+    form.location.trim(),
 
-        end_date: form.currentlyWorking
-  ? null
-  : `${form.endYear}-${String(
-      form.endMonth
+  start_date:
+    `${form.startYear}-${String(
+      form.startMonth
     ).padStart(2, "0")}-01`,
 
-        currently_working:
-          Boolean(form.currentlyWorking),
+  end_date: form.currentlyWorking
+    ? null
+    : `${form.endYear}-${String(
+        form.endMonth
+      ).padStart(2, "0")}-01`,
 
-        description:
-          form.highlights?.trim() || "",
+  currently_working:
+    Boolean(form.currentlyWorking),
 
-        skills: "",
-      };
+  description:
+    form.highlights?.trim() || "",
+
+  skills: "",
+};
 
       let result;
 

@@ -9,6 +9,8 @@ import {
   Building2,
   UserRound,
   ShieldCheck,
+  Eye,
+  EyeOff,
   Upload,
 } from "lucide-react";
 import { api } from "@/services/api";
@@ -123,6 +125,9 @@ export default function JoinCompanyModal({ open, onClose }) {
 
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const set = (key) => (e) => {
     const value =
@@ -283,28 +288,31 @@ export default function JoinCompanyModal({ open, onClose }) {
   };
 
   const close = () => {
-    setDone(false);
-    setStep(1);
+  setDone(false);
+  setStep(1);
 
-    setF({
-      companyName: "",
-      logo: null,
-      website: "",
-      industry: "",
-      size: "",
-      location: "",
-      about: "",
-      contactEmail: "",
-      contactPhone: "",
-      contactName: "",
-      contactRole: "",
-      adminEmail: "",
-      password: "",
-      confirmPassword: "",
-    });
+  setShowPassword(false);
+  setShowConfirmPassword(false);
 
-    onClose();
-  };
+  setF({
+    companyName: "",
+    logo: null,
+    website: "",
+    industry: "",
+    size: "",
+    location: "",
+    about: "",
+    contactEmail: "",
+    contactPhone: "",
+    contactName: "",
+    contactRole: "",
+    adminEmail: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  onClose();
+};
 
   return (
     <AnimatePresence>
@@ -702,41 +710,93 @@ export default function JoinCompanyModal({ open, onClose }) {
                         </div>
 
                         <div>
-                          <Label req>Password</Label>
+  <Label req>Password</Label>
 
-                          <input
-                            type="password"
-                            className={field}
-                            value={f.password}
-                            onChange={set("password")}
-                            placeholder="Enter password"
-                            data-testid="admin-password"
-                          />
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      className={`${field} pr-12`}
+      value={f.password}
+      onChange={set("password")}
+      placeholder="Enter password"
+      data-testid="admin-password"
+    />
 
-                          <p className="mt-1.5 text-xs text-slate-500">
-                            Password must contain at least 8 characters.
-                          </p>
-                        </div>
+    <button
+      type="button"
+      onClick={() => setShowPassword((prev) => !prev)}
+      className="
+        absolute right-3 top-1/2
+        -translate-y-1/2
+        rounded-lg p-1.5
+        text-slate-400
+        transition-colors
+        hover:bg-slate-100
+        hover:text-slate-700
+      "
+      aria-label={showPassword ? "Hide password" : "Show password"}
+    >
+      {showPassword ? (
+        <EyeOff className="h-5 w-5" />
+      ) : (
+        <Eye className="h-5 w-5" />
+      )}
+    </button>
+  </div>
+
+  <p className="mt-1.5 text-xs text-slate-500">
+    Password must contain at least 8 characters.
+  </p>
+</div>
 
                         <div>
-                          <Label req>Confirm Password</Label>
+  <Label req>Confirm Password</Label>
 
-                          <input
-                            type="password"
-                            className={field}
-                            value={f.confirmPassword}
-                            onChange={set("confirmPassword")}
-                            placeholder="Re-enter password"
-                            data-testid="admin-confirm-password"
-                          />
+  <div className="relative">
+    <input
+      type={showConfirmPassword ? "text" : "password"}
+      className={`${field} pr-12`}
+      value={f.confirmPassword}
+      onChange={set("confirmPassword")}
+      placeholder="Re-enter password"
+      data-testid="admin-confirm-password"
+    />
 
-                          {f.confirmPassword &&
-                            f.password !== f.confirmPassword && (
-                              <p className="mt-1.5 text-xs text-red-500">
-                                Passwords do not match.
-                              </p>
-                            )}
-                        </div>
+    <button
+      type="button"
+      onClick={() =>
+        setShowConfirmPassword((prev) => !prev)
+      }
+      className="
+        absolute right-3 top-1/2
+        -translate-y-1/2
+        rounded-lg p-1.5
+        text-slate-400
+        transition-colors
+        hover:bg-slate-100
+        hover:text-slate-700
+      "
+      aria-label={
+        showConfirmPassword
+          ? "Hide confirm password"
+          : "Show confirm password"
+      }
+    >
+      {showConfirmPassword ? (
+        <EyeOff className="h-5 w-5" />
+      ) : (
+        <Eye className="h-5 w-5" />
+      )}
+    </button>
+  </div>
+
+  {f.confirmPassword &&
+    f.password !== f.confirmPassword && (
+      <p className="mt-1.5 text-xs text-red-500">
+        Passwords do not match.
+      </p>
+    )}
+</div>
                       </motion.div>
                     )}
                   </AnimatePresence>

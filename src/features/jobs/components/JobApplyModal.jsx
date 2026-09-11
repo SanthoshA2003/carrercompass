@@ -62,50 +62,233 @@ export default function JobApplyModal({ open, onClose, job }) {
   // FETCH PROFILE RESUME
   // =========================================================
 
-  useEffect(() => {
-    if (!open) return;
+  // =========================================================
+// AUTOMATICALLY LOAD USER PROFILE DETAILS
+// =========================================================
 
-    const fetchProfileResume = async () => {
-      try {
-        setProfileResumeLoading(true);
+useEffect(() => {
+  if (!open) return;
 
-        const profile = await api.getProfile();
+  const fetchProfileDetails = async () => {
+    try {
+      setProfileResumeLoading(true);
 
-        console.log("PROFILE DATA:", profile);
+      // -----------------------------------------------------
+      // 1. GET LOGIN USER DETAILS
+      // Name / Email / Phone
+      // -----------------------------------------------------
 
-        if (profile?.resume_url) {
-          setProfileResume({
-            fileId: profile.resume_file_id,
-            url: profile.resume_url,
+      const userResponse = await api.me();
 
-            // Your current profile API doesn't return
-            // resume_file_name, so fallback is used.
-            fileName:
-              profile.resume_file_name ||
-              "Profile Resume",
-          });
+      const user =
+        userResponse?.user ||
+        userResponse?.data ||
+        userResponse ||
+        {};
 
-          // Automatically use profile resume
-          setUseNewResume(false);
-        } else {
-          setProfileResume(null);
-          setUseNewResume(true);
-        }
-      } catch (error) {
-        console.error(
-          "FETCH PROFILE RESUME ERROR:",
-          error
-        );
+      console.log("CURRENT USER DATA:", user);
 
+      // -----------------------------------------------------
+      // 2. GET PROFILE DETAILS
+      // Resume and other profile information
+      // -----------------------------------------------------
+
+      const profileResponse = await api.getProfile();
+
+      const profile =
+        profileResponse?.profile ||
+        profileResponse?.data ||
+        profileResponse ||
+        {};
+
+      console.log("PROFILE DATA:", profile);
+
+      // -----------------------------------------------------
+// 3. GET SAVED WORK EXPERIENCE
+// -----------------------------------------------------
+
+let workExperiences = [];
+
+try {
+  const experienceResponse =
+    await api.getWorkExperiences();
+
+  console.log(
+    "================================="
+  );
+  console.log(
+    "WORK EXPERIENCE API RESPONSE:",
+    experienceResponse
+  );
+  console.log(
+    "================================="
+  );
+
+  if (Array.isArray(experienceResponse)) {
+    workExperiences = experienceResponse;
+  } else if (
+    Array.isArray(experienceResponse?.items)
+  ) {
+    workExperiences = experienceResponse.items;
+  } else if (
+    Array.isArray(
+      experienceResponse?.experiences
+    )
+  ) {
+    workExperiences =
+      experienceResponse.experiences;
+  } else if (
+    Array.isArray(
+      experienceResponse?.work_experiences
+    )
+  ) {
+    workExperiences =
+      experienceResponse.work_experiences;
+  } else if (
+    Array.isArray(
+      experienceResponse?.workExperiences
+    )
+  ) {
+    workExperiences =
+      experienceResponse.workExperiences;
+  } else if (
+    Array.isArray(experienceResponse?.data)
+  ) {
+    workExperiences =
+      experienceResponse.data;
+  } else if (
+    Array.isArray(
+      experienceResponse?.data?.items
+    )
+  ) {
+    workExperiences =
+      experienceResponse.data.items;
+  } else if (
+    Array.isArray(
+      experienceResponse?.data?.experiences
+    )
+  ) {
+    workExperiences =
+      experienceResponse.data.experiences;
+  }
+
+  console.log(
+    "NORMALIZED WORK EXPERIENCES:",
+    workExperiences
+  );
+
+} catch (experienceError) {
+  console.warn(
+    "WORK EXPERIENCE LOAD ERROR:",
+    experienceError
+  );
+}
+
+     // -----------------------------------------------------
+// FIND EXPERIENCE
+// -----------------------------------------------------
+
+const firstExperience =
+  workExperiences?.[0] || {};
+
+console.log(
+  "FIRST WORK EXPERIENCE:",
+  firstExperience
+);
+
+const experience =
+  firstExperience?.years_experience ??
+  firstExperience?.experience_years ??
+  firstExperience?.yearsExperience ??
+  profile?.experience ??
+  profile?.total_experience ??
+  profile?.work_experience ??
+  "";
+
+      // -----------------------------------------------------
+      // AUTOMATICALLY FILL FORM
+      // -----------------------------------------------------
+
+      setF((prev) => ({
+        ...prev,
+
+        name:
+          user?.name ||
+          user?.full_name ||
+          user?.fullName ||
+          "",
+
+        email:
+          user?.email ||
+          "",
+
+        phone:
+          user?.phone ||
+          user?.mobile ||
+          user?.phone_number ||
+          "",
+
+        experience:
+          experience !== null &&
+          experience !== undefined
+            ? String(experience)
+            : "",
+      }));
+
+      // -----------------------------------------------------
+      // PROFILE RESUME
+      // -----------------------------------------------------
+
+      const resumeUrl =
+        profile?.resume_url ||
+        profile?.resumeUrl ||
+        "";
+
+      const resumeFileId =
+        profile?.resume_file_id ||
+        profile?.resumeFileId ||
+        null;
+
+      if (resumeUrl) {
+        setProfileResume({
+          fileId: resumeFileId,
+          url: resumeUrl,
+
+          fileName:
+            profile?.resume_file_name ||
+            profile?.resumeFileName ||
+            profile?.original_filename ||
+            profile?.file_name ||
+            "Profile Resume",
+        });
+
+        // Automatically use saved profile resume
+        setResumeType("upload");
+        setUseNewResume(false);
+      } else {
         setProfileResume(null);
         setUseNewResume(true);
-      } finally {
-        setProfileResumeLoading(false);
       }
-    };
 
-    fetchProfileResume();
-  }, [open]);
+    } catch (error) {
+      console.error(
+        "FETCH PROFILE DETAILS ERROR:",
+        error
+      );
+
+      setProfileResume(null);
+      setUseNewResume(true);
+
+      toast.error(
+        "Unable to load your profile details"
+      );
+    } finally {
+      setProfileResumeLoading(false);
+    }
+  };
+
+  fetchProfileDetails();
+}, [open]);
 
   // =========================================================
   // SUBMIT APPLICATION
