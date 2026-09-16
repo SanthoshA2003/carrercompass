@@ -330,13 +330,10 @@ jobCreate: (body) =>
   client
     .get("/job-applications", { params })
     .then((r) => r.data),
-
+    
 jobApply: (body) =>
   client
-    .post("/job-applications", {
-      ...body,
-      status: "submitted",
-    })
+    .post("/job-applications", body)
     .then((r) => r.data),
 
   // ==================================================
@@ -559,6 +556,34 @@ updateProgress: (progressId, body) =>
       .get("/dashboard/student/skillhub")
       .then((r) => r.data),
 
+ getMyResumes: async () => {
+  const response = await client.get("/files/me/resumes");
+
+  console.log("MY RESUMES API RESPONSE:", response.data);
+
+  return response.data;
+},
+
+upload: async (file) => {
+  if (!file) {
+    throw new Error("No resume file selected.");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await client.post(
+    "/files/upload",
+    formData
+  );
+
+  console.log(
+    "RESUME UPLOAD API RESPONSE:",
+    response.data
+  );
+
+  return response.data;
+},
   // ==================================================
   // ADMIN
   // ==================================================

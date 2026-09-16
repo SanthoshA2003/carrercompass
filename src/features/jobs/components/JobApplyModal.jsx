@@ -29,11 +29,16 @@ export default function JobApplyModal({ open, onClose, job }) {
   const [resumeType, setResumeType] = useState("upload");
 
   const [profileResume, setProfileResume] = useState(null);
+const [previousResumes, setPreviousResumes] = useState([]);
+const [currentUser, setCurrentUser] = useState(null);
 
-  const [profileResumeLoading, setProfileResumeLoading] =
-    useState(false);
+const [profileResumeLoading, setProfileResumeLoading] =
+  useState(false);
 
-  const [useNewResume, setUseNewResume] = useState(false);
+const [useNewResume, setUseNewResume] = useState(false);
+
+const [selectedPreviousResume, setSelectedPreviousResume] =
+  useState(null);
 
   // =========================================================
   // FORM STATE
@@ -58,54 +63,119 @@ export default function JobApplyModal({ open, onClose, job }) {
       [key]: e.target.value,
     }));
 
+
+    useEffect(() => {
+  if (!open) return;
+
+  const fetchCurrentUser = async () => {
+    try {
+      const user = await api.me();
+
+      console.log("CURRENT USER:", user);
+
+      setCurrentUser(user);
+
+      setF((prev) => ({
+        ...prev,
+        name:
+          user?.name ||
+          user?.full_name ||
+          user?.fullName ||
+          user?.username ||
+          "",
+        email:
+          user?.email ||
+          user?.email_address ||
+          "",
+        phone:
+          user?.phone ||
+          user?.phone_number ||
+          "",
+      }));
+    } catch (error) {
+      console.error("FETCH CURRENT USER ERROR:", error);
+      toast.error("Unable to load your profile");
+    }
+  };
+
+  fetchCurrentUser();
+}, [open]);
   // =========================================================
   // FETCH PROFILE RESUME
   // =========================================================
 
   useEffect(() => {
-    if (!open) return;
+  if (!open) return;
 
-    const fetchProfileResume = async () => {
-      try {
-        setProfileResumeLoading(true);
+  const fetchResumes = async () => {
+    try {
+      setProfileResumeLoading(true);
 
-        const profile = await api.getProfile();
+      const response = await api.getMyResumes();
 
-        console.log("PROFILE DATA:", profile);
+      console.log("MY RESUMES:", response);
 
-        if (profile?.resume_url) {
-          setProfileResume({
-            fileId: profile.resume_file_id,
-            url: profile.resume_url,
+      // -----------------------------------------
+      // PROFILE RESUME
+      // -----------------------------------------
 
-            // Your current profile API doesn't return
-            // resume_file_name, so fallback is used.
-            fileName:
-              profile.resume_file_name ||
-              "Profile Resume",
-          });
+      const profile = response?.profile_resume;
 
-          // Automatically use profile resume
-          setUseNewResume(false);
-        } else {
-          setProfileResume(null);
-          setUseNewResume(true);
-        }
-      } catch (error) {
-        console.error(
-          "FETCH PROFILE RESUME ERROR:",
-          error
-        );
+      if (profile) {
+        setProfileResume({
+          fileId: profile.file_id,
+          url: profile.file_url,
+          fileName: profile.file_name || "Profile Resume",
+          source: "profile",
+        });
 
+        // Automatically use profile resume
+        setUseNewResume(false);
+      } else {
         setProfileResume(null);
         setUseNewResume(true);
-      } finally {
-        setProfileResumeLoading(false);
       }
-    };
 
-    fetchProfileResume();
-  }, [open]);
+      // -----------------------------------------
+      // PREVIOUS APPLICATION RESUMES
+      // -----------------------------------------
+
+      const resumes = response?.all_resumes || [];
+
+      const previous = resumes
+        .filter(
+          (resume) =>
+            resume.source === "job_application" &&
+            resume.file_url
+        )
+        .map((resume) => ({
+          fileId: resume.file_id,
+          url: resume.file_url,
+          fileName: resume.file_name || "Previous Resume",
+          source: resume.source,
+          applicationId: resume.application_id,
+          jobId: resume.job_id,
+        }));
+
+      setPreviousResumes(previous);
+
+      console.log("PROFILE RESUME:", profile);
+      console.log("PREVIOUS RESUMES:", previous);
+    } catch (error) {
+      console.error("FETCH RESUMES ERROR:", error);
+
+      setProfileResume(null);
+      setPreviousResumes([]);
+      setUseNewResume(true);
+
+      toast.error("Unable to load your previous resumes");
+    } finally {
+      setProfileResumeLoading(false);
+    }
+  };
+
+  fetchResumes();
+}, [open]);
 
   // =========================================================
   // SUBMIT APPLICATION
@@ -125,14 +195,13 @@ export default function JobApplyModal({ open, onClose, job }) {
     // ---------------------------------------------------------
 
     if (
-      resumeType === "upload" &&
-      !profileResume &&
-      !f.resumeFile
-    ) {
-      return toast.error(
-        "Please upload your resume"
-      );
-    }
+  resumeType === "upload" &&
+  !profileResume &&
+  !selectedPreviousResume &&
+  !f.resumeFile
+) {
+  return toast.error("Please upload or select a resume");
+}
 
     if (
       resumeType === "link" &&
@@ -153,69 +222,70 @@ export default function JobApplyModal({ open, onClose, job }) {
       // =======================================================
       // UPLOAD TYPE
       // =======================================================
+if (resumeType === "upload") {
+  // =====================================================
+  // USE PREVIOUS RESUME
+  // =====================================================
 
-      if (resumeType === "upload") {
-        // -----------------------------------------------------
-        // USE PROFILE RESUME
-        // -----------------------------------------------------
+  if (selectedPreviousResume && !useNewResume) {
+    resumeLink = selectedPreviousResume.url;
+    resumeFileId = selectedPreviousResume.fileId;
+    resumeSource = "job_application";
 
-        if (
-          profileResume &&
-          !useNewResume
-        ) {
-          resumeLink = profileResume.url;
-          resumeFileId = profileResume.fileId;
-          resumeSource = "profile";
+    console.log(
+      "USING PREVIOUS RESUME:",
+      selectedPreviousResume
+    );
+  }
 
-          console.log(
-            "USING PROFILE RESUME:",
-            profileResume
-          );
-        }
+  // =====================================================
+  // USE PROFILE RESUME
+  // =====================================================
 
-        // -----------------------------------------------------
-        // UPLOAD NEW RESUME
-        // -----------------------------------------------------
+  else if (profileResume && !useNewResume) {
+    resumeLink = profileResume.url;
+    resumeFileId = profileResume.fileId;
+    resumeSource = "profile";
 
-        else if (f.resumeFile) {
-          console.log(
-            "UPLOADING NEW RESUME:",
-            f.resumeFile.name
-          );
+    console.log(
+      "USING PROFILE RESUME:",
+      profileResume
+    );
+  }
 
-          const uploadResponse =
-            await api.upload(f.resumeFile);
+  // =====================================================
+  // UPLOAD NEW RESUME
+  // =====================================================
 
-          console.log(
-            "NEW RESUME UPLOAD RESPONSE:",
-            uploadResponse
-          );
+  else if (f.resumeFile) {
+    console.log(
+      "UPLOADING NEW RESUME:",
+      f.resumeFile.name
+    );
 
-          resumeLink =
-            uploadResponse?.file_url ||
-            uploadResponse?.url ||
-            uploadResponse?.fileUrl ||
-            "";
+    const uploadResponse = await api.upload(
+      f.resumeFile
+    );
 
-          resumeFileId =
-            uploadResponse?.id ||
-            uploadResponse?.file_id ||
-            null;
+    console.log(
+      "NEW RESUME UPLOAD RESPONSE:",
+      uploadResponse
+    );
 
-          resumeSource = "upload";
-        }
-      }
+    resumeLink =
+      uploadResponse?.file_url ||
+      uploadResponse?.url ||
+      uploadResponse?.fileUrl ||
+      "";
 
-      // =======================================================
-      // RESUME LINK
-      // =======================================================
+    resumeFileId =
+      uploadResponse?.file_id ||
+      uploadResponse?.id ||
+      null;
 
-      if (resumeType === "link") {
-        resumeLink = f.resumeLink;
-        resumeSource = "link";
-        resumeFileId = null;
-      }
-
+    resumeSource = "upload";
+  }
+}
       // =======================================================
       // VALIDATE RESUME
       // =======================================================
@@ -231,18 +301,20 @@ export default function JobApplyModal({ open, onClose, job }) {
       // =======================================================
 
       const payload = {
-        job_id: job.id,
+  job_id: job.id,
 
-        name: f.name,
-        email: f.email,
-        phone: f.phone,
-        experience: f.experience,
-        cover_note: f.coverNote,
+  applicant_user_id: currentUser?.id,
 
-        resume_file_id: resumeFileId,
-        resume_source: resumeSource,
-        resume_link: resumeLink,
-      };
+  name: f.name,
+  email: f.email,
+  phone: f.phone,
+  experience: f.experience,
+  cover_note: f.coverNote,
+
+  resume_file_id: resumeFileId,
+  resume_source: resumeSource,
+  resume_link: resumeLink,
+};
 
       console.log(
         "JOB APPLICATION PAYLOAD:",
@@ -426,12 +498,12 @@ export default function JobApplyModal({ open, onClose, job }) {
                       Full Name
                     </Label>
 
-                    <input
-                      className={field}
-                      value={f.name}
-                      onChange={set("name")}
-                      data-testid="apply-job-name"
-                    />
+                   <input
+  className={`${field} bg-slate-50`}
+  value={f.name}
+  readOnly
+  data-testid="apply-job-name"
+/>
                   </div>
 
                   {/* EMAIL */}
