@@ -10,10 +10,12 @@ import Login from "@/features/skillhub/pages/Login";
 import Dashboard from "@/features/skillhub/pages/Dashboard";
 import Journey from "@/features/skillhub/pages/Journey";
 import Workspace from "@/features/skillhub/pages/Workspace";
+
 import AdminDashboard from "@/features/skillhub/pages/AdminDashboard";
 import AdminBuilder from "@/features/skillhub/pages/AdminBuilder";
 import AdminCourses from "@/features/skillhub/pages/AdminCourses";
 import AdminCourseLevels from "@/features/skillhub/pages/AdminCourseLevels";
+import AdminCollegePackages from "@/features/skillhub/pages/AdminCollegePackages";
 
 import {
   AdminStudents,
@@ -159,28 +161,44 @@ export default function SkillHubApp() {
           }
         />
 
+        {/* ==============================
+            ADMIN COURSES
+        ============================== */}
+
+        <Route
+          path="admin/courses"
+          element={
+            <Guard admin>
+              <AdminCourses />
+            </Guard>
+          }
+        />
 
         {/* ==============================
-    ADMIN COURSES
-============================== */}
+            ADMIN COURSE LEVELS
+        ============================== */}
 
-<Route
-  path="admin/courses"
-  element={
-    <Guard admin>
-      <AdminCourses />
-    </Guard>
-  }
-/>
+        <Route
+          path="admin/courses/:courseId"
+          element={
+            <Guard admin>
+              <AdminCourseLevels />
+            </Guard>
+          }
+        />
 
-<Route
-  path="admin/courses/:courseId"
-  element={
-    <Guard admin>
-      <AdminCourseLevels />
-    </Guard>
-  }
-/>
+        {/* ==============================
+            ADMIN COLLEGE PACKAGES
+        ============================== */}
+
+        <Route
+          path="admin/college-packages"
+          element={
+            <Guard admin>
+              <AdminCollegePackages />
+            </Guard>
+          }
+        />
 
         {/* ==============================
             ADMIN STUDENTS
