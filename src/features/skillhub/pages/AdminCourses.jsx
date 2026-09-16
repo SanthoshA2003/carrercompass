@@ -257,6 +257,8 @@ export default function AdminCourses() {
               ))}
             </div>
           ))}
+
+          
       </div>
     </Shell>
   );
