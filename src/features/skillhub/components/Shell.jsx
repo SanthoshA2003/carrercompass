@@ -13,6 +13,7 @@ import {
   Zap,
   Home,
   ArrowLeft,
+  Building2,
 } from "lucide-react";
 
 import { api } from "@/services/api";
@@ -43,6 +44,12 @@ const adminNav = [
     to: "/skillhub/admin/students",
     label: "Students",
     icon: Users,
+  },
+
+   {
+    to: "/skillhub/admin/colleges",
+    label: "Colleges",
+    icon: Building2,
   },
 ];
 
