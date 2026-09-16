@@ -6,6 +6,7 @@ import {
   useAcademyAuth,
 } from "@/context/AuthContext";
 
+import AdminCollegePackages from "@/features/skillhub/pages/AdminCollegePackages";
 import Login from "@/features/skillhub/pages/Login";
 import Dashboard from "@/features/skillhub/pages/Dashboard";
 import Journey from "@/features/skillhub/pages/Journey";
@@ -15,7 +16,7 @@ import AdminDashboard from "@/features/skillhub/pages/AdminDashboard";
 import AdminBuilder from "@/features/skillhub/pages/AdminBuilder";
 import AdminCourses from "@/features/skillhub/pages/AdminCourses";
 import AdminCourseLevels from "@/features/skillhub/pages/AdminCourseLevels";
-
+import CollegeManagement from "@/features/skillhub/pages/CollegeManagement";
 import {
   AdminStudents,
   Certificates,

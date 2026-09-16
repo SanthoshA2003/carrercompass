@@ -14,6 +14,10 @@ import {
   Zap,
   Home,
   ArrowLeft,
+    GraduationCap,
+  Building2,
+  
+
 } from "lucide-react";
 
 import { api } from "@/services/api";
