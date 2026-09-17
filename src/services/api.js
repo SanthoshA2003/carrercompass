@@ -140,6 +140,22 @@ export const api = {
       })
       .then((r) => r.data),
 
+      collegesList: () =>
+  client
+    .get("/colleges")
+    .then((response) => response.data),
+
+    getCollegeById: (collegeId) =>
+  client.get(`/colleges/${collegeId}`).then((response) => response.data),
+
+      createCollege: (collegeData) =>
+  client.post("/colleges", collegeData).then((response) => response.data),
+
+      updateCollege: (collegeId, payload) =>
+  client
+    .put(`/colleges/${collegeId}`, payload)
+    .then((response) => response.data),
+
   // ==================================================
   // PROFILE
   // ==================================================
