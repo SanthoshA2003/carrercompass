@@ -624,6 +624,34 @@ upload: async (file) => {
       .post("/courses", body)
       .then((r) => r.data),
 
+     // ==================================================
+// COLLEGE PACKAGES
+// ==================================================
+
+createCollegePackage: (data) =>
+  client
+    .post("/college-packages", data)
+    .then((r) => r.data),
+
+    getCollegePackages: () =>
+  client
+    .get("/college-packages")
+    .then((r) => r.data),
+    getCollegePackage: (packageId) =>
+  client
+    .get(`/college-packages/${packageId}`)
+    .then((r) => r.data),
+
+updateCollegePackage: (packageId, data) =>
+  client
+    .put(`/college-packages/${packageId}`, data)
+    .then((r) => r.data),
+
+deleteCollegePackage: (packageId) =>
+  client
+    .delete(`/college-packages/${packageId}`)
+    .then((r) => r.data),
+
   // ==================================================
   // FILE UPLOAD
   // ==================================================
