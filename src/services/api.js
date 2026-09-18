@@ -55,6 +55,9 @@ client.interceptors.response.use(
   }
 );
 
+
+
+
 // ==================================================
 // GOOGLE LOGIN
 // ==================================================
@@ -116,6 +119,15 @@ export const api = {
   me: () =>
     client
       .get("/auth/me")
+      .then((r) => r.data),
+
+
+        // JOIN COLLEGE
+  joinCollege: (college_code) =>
+    client
+      .post("/students/college-code", {
+        college_code,
+      })
       .then((r) => r.data),
 
   googleSession: (session_id) =>
@@ -356,6 +368,11 @@ jobApply: (body) =>
   // COURSES / SKILLHUB
   // ==================================================
 
+studentCourses: async () => {
+  const response = await client.get("/students/courses");
+  return response.data;
+},
+
   courses: () =>
     client
       .get("/courses")
@@ -377,12 +394,12 @@ enrolledCourses: () =>
       .get(`/courses/${courseId}/journey`)
       .then((r) => r.data),
 
-      getLevelByCourseAndNumber: async (
+     getLevelByCourseAndNumber: async (
   courseId,
   levelNumber
 ) => {
-  const response = await axios.get(
-    `/api/levels/course/${courseId}/number/${levelNumber}`
+  const response = await client.get(
+    `/levels/course/${courseId}/number/${levelNumber}`
   );
 
   return response.data;

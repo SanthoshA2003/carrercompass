@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+
 import {
   Play,
-  Zap,
-  Flame,
   Trophy,
   Award,
   CheckCircle2,
@@ -12,54 +11,138 @@ import {
   Loader2,
   BookOpen,
   Target,
+  AlertCircle,
+  Package,
 } from "lucide-react";
 
 import Shell from "@/features/skillhub/components/Shell";
 import { api } from "@/services/api";
 
-const Card = ({ children, className = "" }) => (
-  <div
-    className={`rounded-3xl border border-white/5 bg-white/[0.03] p-6 backdrop-blur ${className}`}
-  >
-    {children}
-  </div>
-);
+const Card = ({ children, className = "" }) => {
+  return (
+    <div
+      className={`rounded-3xl border border-white/5 bg-white/[0.03] p-6 backdrop-blur ${className}`}
+    >
+      {children}
+    </div>
+  );
+};
 
 export default function Dashboard() {
-const [data, setData] = useState(null);
-const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-const nav = useNavigate();
+  const [data, setData] = useState(null);
+  const [collegeCourses, setCollegeCourses] = useState(null);
 
- useEffect(() => {
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
+  const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
-      // ONLY DASHBOARD API
-      const dashboardResponse =
-        await api.studentSkillHubDashboard();
+  const [dashboardError, setDashboardError] = useState("");
+  const [collegeCoursesError, setCollegeCoursesError] = useState("");
 
-      console.log("Dashboard:", dashboardResponse);
+  /*
+   * --------------------------------------------------
+   * Fetch SkillHub Dashboard
+   * --------------------------------------------------
+   */
 
-      setData(dashboardResponse);
-    } catch (error) {
-      console.error(
-        "Dashboard error:",
-        error?.response?.data || error
-      );
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setDashboardError("");
 
-      setData(null);
-    } finally {
-      setLoading(false);
+        const response = await api.studentSkillHubDashboard();
+
+        console.log("SkillHub Dashboard:", response);
+
+        setData(response);
+      } catch (error) {
+        console.error(
+          "Dashboard error:",
+          error?.response?.data || error
+        );
+
+        setDashboardError(
+          error?.response?.data?.detail ||
+            "Unable to load dashboard"
+        );
+
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  /*
+   * --------------------------------------------------
+   * Fetch College Packages
+   * --------------------------------------------------
+   */
+
+  useEffect(() => {
+    const collegeConnected =
+      localStorage.getItem("college_connected") === "true";
+
+    const collegeCode =
+      localStorage.getItem("college_code");
+
+    console.log("College Connected:", collegeConnected);
+    console.log("College Code:", collegeCode);
+
+    if (!collegeConnected || !collegeCode) {
+      setCollegeCourses(null);
+      setCoursesLoading(false);
+      return;
     }
-  };
 
-  fetchDashboard();
-}, []);
+    const fetchCollegeCourses = async () => {
+      try {
+        setCoursesLoading(true);
+        setCollegeCoursesError("");
+
+        /*
+         * The API uses the logged-in user's token
+         * to identify the connected college.
+         *
+         * GET /api/students/courses
+         */
+
+        const response = await api.studentCourses();
+
+        console.log("Student Courses Response:", response);
+
+        setCollegeCourses(response);
+      } catch (error) {
+        console.error(
+          "Student courses error:",
+          error?.response?.data || error
+        );
+
+        setCollegeCoursesError(
+          error?.response?.data?.detail ||
+            "Unable to load college packages"
+        );
+
+        setCollegeCourses(null);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+
+    fetchCollegeCourses();
+  }, []);
+
+  /*
+   * --------------------------------------------------
+   * Loading Screen
+   * --------------------------------------------------
+   */
 
   if (loading) {
-    
     return (
       <Shell>
         <div className="grid h-[60vh] place-items-center">
@@ -69,170 +152,453 @@ const nav = useNavigate();
     );
   }
 
-  // API mapping
-const courses = data?.continue_courses || [];
+  /*
+   * --------------------------------------------------
+   * Dashboard Data
+   * --------------------------------------------------
+   */
 
-const achievements = data?.achievements || [];
-const recentlyCompleted = data?.recently_completed || [];
-const certificates = data?.certificates || [];
+  const courses = data?.continue_courses || [];
+
+  const achievements = data?.achievements || [];
+
+  const recentlyCompleted =
+    data?.recently_completed || [];
+
+  const certificates = data?.certificates || [];
+
+  const collegeConnected =
+    localStorage.getItem("college_connected") === "true";
+
+  const collegeCode =
+    localStorage.getItem("college_code") || "";
+
+  /*
+   * API Response:
+   *
+   * {
+   *   college_id: "...",
+   *   college_name: "...",
+   *   college_code: "...",
+   *   package_courses: [],
+   *   enrolled_courses: [],
+   *   courses: []
+   * }
+   */
+
+  const packageCourses =
+    collegeCourses?.package_courses || [];
+
+  const enrolledCourses =
+    collegeCourses?.enrolled_courses || [];
+
+  const studentCourses =
+    collegeCourses?.courses || [];
+
+  /*
+   * --------------------------------------------------
+   * Start Course
+   * --------------------------------------------------
+   */
+
+  const handleStartCourse = (course) => {
+    const courseId =
+      course.course_id ||
+      course.id ||
+      course.courseId;
+
+    if (!courseId) {
+      console.error("Course ID not found:", course);
+      return;
+    }
+
+    navigate(`/skillhub/journey/${courseId}`);
+  };
 
   return (
     <Shell>
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-10">
 
-        {/* Continue Learning */}
+        {/* --------------------------------------------------
+            COLLEGE PACKAGES
+        -------------------------------------------------- */}
 
-<div className="space-y-6">
-  {/* SECTION HEADER */}
-
-  <div>
-    <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
-      Continue Learning
-    </p>
-
-    <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
-      Your Courses
-    </h1>
-  </div>
-
-  {/* NO COURSES */}
-
-  {courses.length === 0 && (
-    <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-10 text-center">
-      <BookOpen className="mx-auto h-10 w-10 text-cyan-400" />
-
-      <h2 className="mt-4 text-xl font-bold text-white">
-        No enrolled courses
-      </h2>
-
-      <p className="mt-2 text-sm text-slate-400">
-        Start a course to begin your learning journey.
-      </p>
-    </div>
-  )}
-
-  {/* ALL ENROLLED COURSES */}
-
-  <div className="grid gap-6 lg:grid-cols-2">
-    {courses.map((course, index) => (
-      <motion.div
-        key={course.course_id || course.id || index}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-cyan-500/15 via-violet-500/10 to-slate-900 p-7"
-      >
-        <div className="relative">
-
-          {/* TOP */}
-
-          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
+        {collegeConnected && (
+          <section className="space-y-6">
+            {/* Section Header */}
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">
-                {course.stage || "Learning Course"}
+              <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
+                College Learning
               </p>
 
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
-                {course.title}
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+                College Packages
+              </h1>
+
+              <p className="mt-2 text-sm text-slate-400">
+                Courses and packages provided by your college.
+              </p>
+
+              {collegeCourses?.college_name && (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-300">
+                  <Package className="h-4 w-4" />
+
+                  {collegeCourses.college_name}
+                </div>
+              )}
+
+              {collegeCourses?.college_code && (
+                <p className="mt-2 text-xs text-slate-500">
+                  College Code:{" "}
+                  <span className="font-semibold text-slate-300">
+                    {collegeCourses.college_code}
+                  </span>
+                </p>
+              )}
+
+              {!collegeCourses?.college_code &&
+                collegeCode && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    College Code:{" "}
+                    <span className="font-semibold text-slate-300">
+                      {collegeCode}
+                    </span>
+                  </p>
+                )}
+            </div>
+
+            {/* Loading */}
+
+            {coursesLoading && (
+              <div className="flex min-h-[220px] items-center justify-center rounded-3xl border border-white/5 bg-white/[0.03]">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+
+                  <p className="text-sm text-slate-400">
+                    Loading college packages...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+
+            {!coursesLoading &&
+              collegeCoursesError && (
+                <div className="rounded-3xl border border-red-400/20 bg-red-400/10 p-6">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-6 w-6 text-red-400" />
+
+                    <div>
+                      <h2 className="font-bold text-red-300">
+                        Unable to load college packages
+                      </h2>
+
+                      <p className="mt-1 text-sm text-red-200/70">
+                        {collegeCoursesError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            {/* No Packages */}
+
+            {!coursesLoading &&
+              !collegeCoursesError &&
+              packageCourses.length === 0 && (
+                <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-10 text-center">
+                  <BookOpen className="mx-auto h-10 w-10 text-cyan-400" />
+
+                  <h2 className="mt-4 text-xl font-bold text-white">
+                    No college packages available
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-400">
+                    Your college has not assigned any packages yet.
+                  </p>
+                </div>
+              )}
+
+            {/* College Package Cards */}
+
+            {!coursesLoading &&
+              !collegeCoursesError &&
+              packageCourses.length > 0 && (
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {packageCourses.map((course, index) => {
+                    const courseId =
+                      course.course_id ||
+                      course.id ||
+                      course.courseId;
+
+                    const courseTitle =
+                      course.title ||
+                      course.name ||
+                      course.course_name ||
+                      "Untitled Course";
+
+                    const courseDescription =
+                      course.description ||
+                      "College assigned course";
+
+                    return (
+                      <motion.div
+                        key={courseId || index}
+                        initial={{
+                          opacity: 0,
+                          y: 20,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        transition={{
+                          delay: index * 0.1,
+                        }}
+                        className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-500/20 via-cyan-500/10 to-slate-900 p-6"
+                      >
+                        {/* Decorative Glow */}
+
+                        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+
+                        <div className="relative">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
+                                College Package
+                              </p>
+
+                              <h2 className="mt-2 text-xl font-black text-white">
+                                {courseTitle}
+                              </h2>
+
+                              <p className="mt-2 text-sm leading-6 text-slate-400">
+                                {courseDescription}
+                              </p>
+                            </div>
+
+                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400/10">
+                              <BookOpen className="h-6 w-6 text-cyan-400" />
+                            </div>
+                          </div>
+
+                          {/* Course Information */}
+
+                          <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
+                            {course.difficulty && (
+                              <span className="rounded-full bg-white/10 px-3 py-1">
+                                {course.difficulty}
+                              </span>
+                            )}
+
+                            {course.stage && (
+                              <span className="rounded-full bg-white/10 px-3 py-1">
+                                {course.stage}
+                              </span>
+                            )}
+
+                            {course.level && (
+                              <span className="rounded-full bg-white/10 px-3 py-1">
+                                {course.level}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Start Course Button */}
+
+                          <button
+                            type="button"
+                            disabled={!courseId}
+                            onClick={() =>
+                              handleStartCourse(course)
+                            }
+                            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Start Course
+
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+          </section>
+        )}
+
+        {/* --------------------------------------------------
+            CONTINUE LEARNING
+        -------------------------------------------------- */}
+
+        <section className="space-y-6">
+          {/* Section Header */}
+
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
+              Continue Learning
+            </p>
+
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+              Your Courses
+            </h1>
+          </div>
+
+          {/* No Courses */}
+
+          {courses.length === 0 && (
+            <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-10 text-center">
+              <BookOpen className="mx-auto h-10 w-10 text-cyan-400" />
+
+              <h2 className="mt-4 text-xl font-bold text-white">
+                No enrolled courses
               </h2>
 
-              <p className="mt-2 text-sm text-slate-300">
-                {course.difficulty} · {course.stage}
+              <p className="mt-2 text-sm text-slate-400">
+                Start a course to begin your learning journey.
               </p>
-
-              {/* COURSE STATS */}
-
-              <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-slate-300">
-
-                <span className="flex items-center gap-1.5">
-                  <Target className="h-4 w-4 text-emerald-400" />
-
-                  {course.completed_levels ?? 0}/
-                  {course.total_levels ?? 0} levels
-                </span>
-
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-
-                  {course.progress_percentage ?? 0}% completed
-                </span>
-
-              </div>
             </div>
+          )}
 
-            {/* COURSE BUTTON */}
+          {/* Enrolled Courses */}
 
-            <button
-              onClick={() =>
-                nav(
-                  `/skillhub/journey/${
-                    course.course_id || course.id
-                  }`
-                )
-              }
-              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-large transition-transform hover:scale-105"
-            >
-              <Play className="h-4 w-4 fill-current" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            {courses.map((course, index) => {
+              const courseId =
+                course.course_id ||
+                course.id ||
+                course.courseId;
 
-              {course.progress_percentage === 100
-                ? "View Course"
-                : "Continue"}
+              const progress =
+                Number(course.progress_percentage) || 0;
 
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </button>
+              return (
+                <motion.div
+                  key={courseId || index}
+                  initial={{
+                    opacity: 0,
+                    y: 20,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: index * 0.1,
+                  }}
+                  className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-cyan-500/15 via-violet-500/10 to-slate-900 p-7"
+                >
+                  <div className="relative">
+                    {/* Course Header */}
 
+                    <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">
+                          {course.stage || "Learning Course"}
+                        </p>
+
+                        <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                          {course.title ||
+                            course.name ||
+                            "Untitled Course"}
+                        </h2>
+
+                        <p className="mt-2 text-sm text-slate-300">
+                          {course.difficulty || "Beginner"}{" "}
+                          ·{" "}
+                          {course.stage || "Learning"}
+                        </p>
+
+                        {/* Course Stats */}
+
+                        <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-slate-300">
+                          <span className="flex items-center gap-1.5">
+                            <Target className="h-4 w-4 text-emerald-400" />
+
+                            {course.completed_levels ?? 0}/
+                            {course.total_levels ?? 0} levels
+                          </span>
+
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+
+                            {progress}% completed
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Continue Button */}
+
+                      <button
+                        type="button"
+                        disabled={!courseId}
+                        onClick={() =>
+                          handleStartCourse(course)
+                        }
+                        className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-lg transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Play className="h-4 w-4 fill-current" />
+
+                        {progress === 100
+                          ? "View Course"
+                          : "Continue"}
+
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </button>
+                    </div>
+
+                    {/* Progress Bar */}
+
+                    <div className="mt-7">
+                      <div className="mb-2 flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Course Progress</span>
+
+                        <span>{progress}%</span>
+                      </div>
+
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
+                          initial={{
+                            width: 0,
+                          }}
+                          animate={{
+                            width: `${Math.min(
+                              Math.max(progress, 0),
+                              100
+                            )}%`,
+                          }}
+                          transition={{
+                            duration: 1,
+                            delay: index * 0.1,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
+        </section>
 
-          {/* PROGRESS */}
-
-          <div className="mt-7">
-
-            <div className="mb-2 flex justify-between text-xs font-semibold text-slate-400">
-              <span>Course Progress</span>
-
-              <span>
-                {course.progress_percentage ?? 0}%
-              </span>
-            </div>
-
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
-
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
-                initial={{ width: 0 }}
-                animate={{
-                  width: `${
-                    course.progress_percentage ?? 0
-                  }%`,
-                }}
-                transition={{
-                  duration: 1,
-                  delay: index * 0.1,
-                }}
-              />
-
-            </div>
-
-          </div>
-
-        </div>
-      </motion.div>
-    ))}
-  </div>
-</div>
+        {/* --------------------------------------------------
+            ACHIEVEMENTS, RECENTLY COMPLETED AND CERTIFICATES
+        -------------------------------------------------- */}
 
         <div className="grid gap-6 lg:grid-cols-3">
-
           {/* Achievements */}
+
           <Card>
             <h3 className="flex items-center gap-2 text-lg font-bold text-white">
               <Trophy className="h-5 w-5 text-amber-400" />
+
               Achievements
             </h3>
 
             <div className="mt-4 space-y-3">
-
               {achievements.length === 0 && (
                 <p className="text-sm text-slate-500">
                   Complete learning milestones to earn achievements.
@@ -249,25 +615,27 @@ const certificates = data?.certificates || [];
                   </span>
 
                   <span className="text-sm font-semibold text-white">
-                    {achievement.label || achievement.name}
+                    {achievement.label ||
+                      achievement.name ||
+                      "Achievement"}
                   </span>
 
                   <CheckCircle2 className="ml-auto h-4 w-4 text-amber-400" />
                 </div>
               ))}
-
             </div>
           </Card>
 
           {/* Recently Completed */}
+
           <Card>
             <h3 className="flex items-center gap-2 text-lg font-bold text-white">
               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+
               Recently Completed
             </h3>
 
             <div className="mt-4 space-y-3">
-
               {recentlyCompleted.length === 0 && (
                 <p className="text-sm text-slate-500">
                   Complete a course to see it here.
@@ -296,19 +664,19 @@ const certificates = data?.certificates || [];
                   <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-400" />
                 </div>
               ))}
-
             </div>
           </Card>
 
           {/* Certificates */}
+
           <Card>
             <h3 className="flex items-center gap-2 text-lg font-bold text-white">
               <Award className="h-5 w-5 text-violet-400" />
+
               Certificates
             </h3>
 
             <div className="mt-4 space-y-3">
-
               {certificates.length === 0 && (
                 <p className="text-sm text-slate-500">
                   Complete a full stage to earn a certificate.
@@ -331,21 +699,23 @@ const certificates = data?.certificates || [];
                   </p>
                 </div>
               ))}
-            {courses.length > 0 && (
-  <Link
-    to={`/skillhub/journey/${
-      courses[0].course_id || courses[0].id
-    }`}
-    className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm font-semibold text-cyan-400 transition-colors hover:bg-white/5"
-  >
-    View Full Journey
-    <ArrowRight className="h-4 w-4" />
-  </Link>
-)}
 
+              {courses.length > 0 && (
+                <Link
+                  to={`/skillhub/journey/${
+                    courses[0].course_id ||
+                    courses[0].id ||
+                    courses[0].courseId
+                  }`}
+                  className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm font-semibold text-cyan-400 transition-colors hover:bg-white/5"
+                >
+                  View Full Journey
+
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
             </div>
           </Card>
-
         </div>
       </div>
     </Shell>
