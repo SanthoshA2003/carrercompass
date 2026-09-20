@@ -56,14 +56,35 @@ const [cp, setCp] = useState({ order: 1, atSeconds: 5, title: "", scenario: "", 
 
   // College Package
   const [packageName, setPackageName] = useState("");
-  const [collegeName, setCollegeName] = useState("");
+  const [collegeId, setCollegeId] = useState("");
   const [packageDescription, setPackageDescription] = useState("");
   const [selectedPackageCourses, setSelectedPackageCourses] = useState([]);
   const [creatingPackage, setCreatingPackage] = useState(false);
+  const [colleges, setColleges] = useState([]);
+  const [loadingColleges, setLoadingColleges] = useState(false);
 
 
   const loadCourses = () => api.courses().then((c) => { setCourses(c); if (!courseId && c[0]) setCourseId(c[0].id); });
   useEffect(() => { loadCourses(); /* eslint-disable-next-line */ }, []);
+
+  const loadColleges = async () => {
+    try {
+      setLoadingColleges(true);
+      const response = await api.collegesList();
+      console.log("COLLEGES RESPONSE:", response);
+      setColleges(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error("Failed to fetch colleges:", error);
+      toast.error("Failed to load colleges");
+    } finally {
+      setLoadingColleges(false);
+    }
+  };
+
+  useEffect(() => {
+    loadColleges();
+  }, []);
+
 useEffect(() => {
   if (!courseId) return;
 
@@ -411,12 +432,16 @@ theory: {
   );
 
   const createCollegePackage = async () => {
+    if (!collegeId) {
+      return toast.error("Select a college");
+    }
+
     if (!packageName.trim()) {
       return toast.error("Package name required");
     }
 
-    if (!collegeName.trim()) {
-      return toast.error("College name required");
+    if (!packageDescription.trim()) {
+      return toast.error("Package description required");
     }
 
     if (selectedPackageCourses.length === 0) {
@@ -424,27 +449,30 @@ theory: {
     }
 
     const packageData = {
+      college_id: collegeId,
       package_name: packageName.trim(),
-      college_name: collegeName.trim(),
       description: packageDescription.trim(),
       course_ids: selectedPackageCourses,
     };
 
-    // The current api service does not expose a package endpoint yet.
-    // Keep the payload ready for the backend integration.
-    console.log("College Package:", packageData);
+    console.log("CREATE COLLEGE PACKAGE PAYLOAD:", packageData);
 
     if (typeof api.createCollegePackage !== "function") {
-      toast.info("College Package UI is ready. Add the package API endpoint to save it.");
+      toast.error("createCollegePackage API is not available in services/api.js");
       return;
     }
 
     try {
       setCreatingPackage(true);
-      await api.createCollegePackage(packageData);
-      toast.success("College package created");
+
+      const response = await api.createCollegePackage(packageData);
+
+      console.log("COLLEGE PACKAGE CREATED:", response);
+
+      toast.success("College package created successfully");
+
       setPackageName("");
-      setCollegeName("");
+      setCollegeId("");
       setPackageDescription("");
       setSelectedPackageCourses([]);
     } catch (error) {
@@ -452,10 +480,26 @@ theory: {
         "Create college package error:",
         error.response?.data || error
       );
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to create college package"
-      );
+
+      const errorData = error?.response?.data;
+      let message = "Failed to create college package";
+
+      if (Array.isArray(errorData?.detail)) {
+        message = errorData.detail
+          .map((item) => {
+            const field = item.loc?.slice(-1)?.[0] || "field";
+            return `${field}: ${item.msg}`;
+          })
+          .join(", ");
+      } else if (typeof errorData?.detail === "string") {
+        message = errorData.detail;
+      } else if (typeof errorData?.message === "string") {
+        message = errorData.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+
+      toast.error(message);
     } finally {
       setCreatingPackage(false);
     }
@@ -775,11 +819,21 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
 
             <div>
               <Label>College Name</Label>
-              <Input
-                value={collegeName}
-                onChange={(e) => setCollegeName(e.target.value)}
-                placeholder="e.g. ABC Engineering College"
-              />
+              <select
+                value={collegeId}
+                onChange={(e) => setCollegeId(e.target.value)}
+                disabled={loadingColleges}
+                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">
+                  {loadingColleges ? "Loading colleges..." : "Select college"}
+                </option>
+                {colleges.map((college) => (
+                  <option key={college.id} value={college.id}>
+                    {college.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="sm:col-span-2">
