@@ -5,7 +5,7 @@ import { useAuth } from "@/features/auth/components/AuthModal";
 export default function GoogleCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-const { refresh } = useAuth();
+const { refresh, handleGoogleSuccess } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -26,8 +26,9 @@ const { refresh } = useAuth();
     );
 
     // Get logged-in user
-   refresh()
-  .then(() => {
+  refresh()
+  .then((loggedInUser) => {
+    handleGoogleSuccess(loggedInUser);
     navigate("/");
   })
       .catch((error) => {

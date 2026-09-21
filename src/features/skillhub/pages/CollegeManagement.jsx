@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import {
+import { useNavigate } from "react-router-dom";import {
   Building2,
   Plus,
   Save,
@@ -80,7 +80,6 @@ const Section = ({ title, description, icon: Icon, children }) => (
 
 const initialForm = {
   collegeName: "",
-  collegeCode: "",
   collegeType: "",
   affiliation: "",
   accreditation: "",
@@ -99,7 +98,11 @@ const initialForm = {
   status: "active",
 };
 
+
+
 export default function CollegeManagement() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,10 +143,7 @@ export default function CollegeManagement() {
       return false;
     }
 
-    if (!form.collegeCode.trim()) {
-      toast.error("College code is required");
-      return false;
-    }
+
 
     if (!form.email.trim()) {
       toast.error("College email is required");
@@ -183,7 +183,6 @@ export default function CollegeManagement() {
 
     setForm({
       collegeName: college.name || "",
-      collegeCode: college.code || "",
       collegeType: college.college_type
         ? college.college_type
             .split("_")
@@ -272,7 +271,6 @@ const handleViewCollege = async (college) => {
     try {
       const payload = {
         name: form.collegeName.trim(),
-        code: form.collegeCode.trim().toUpperCase(),
         college_type: form.collegeType ? form.collegeType.toLowerCase() : null,
         established_year: form.establishedYear
           ? Number(form.establishedYear)
@@ -931,16 +929,7 @@ const handleViewCollege = async (college) => {
                   />
                 </div>
 
-                <div>
-                  <Label required>College Code</Label>
-                  <Input
-                    value={form.collegeCode}
-                    onChange={(e) =>
-                      updateField("collegeCode", e.target.value.toUpperCase())
-                    }
-                    placeholder="Example: UCE001"
-                  />
-                </div>
+               
 
                 <div>
                   <Label>College Type</Label>
@@ -1157,37 +1146,53 @@ const handleViewCollege = async (college) => {
               </div>
             </Section>
 
-            {/* Actions */}
-            <div className="flex flex-col justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
+          {/* Actions */}
+<div className="flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? (
-                  editingCollegeId ? (
-                    "Updating..."
-                  ) : (
-                    "Saving..."
-                  )
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    {editingCollegeId ? "Update College" : "Save College"}
-                  </>
-                )}
-              </button>
-            </div>
-            
+  {/* Left Side - Reset */}
+  <button
+    type="button"
+    onClick={resetForm}
+    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+
+  {/* Right Side - Add Package + Save */}
+  <div className="flex flex-col gap-3 sm:flex-row">
+
+    {/* Add Package */}
+    <button
+      type="button"
+      onClick={() => {
+        navigate("/skillhub/admin/builder");
+        window.scrollTo(0, 0);
+      }}
+      className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-400/20 hover:text-cyan-200"
+    >
+      <Plus className="h-4 w-4" />
+      Add Package
+    </button>
+
+    {/* Save / Update College */}
+    <button
+      type="submit"
+      disabled={saving}
+      className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {saving ? (
+        editingCollegeId ? "Updating..." : "Saving..."
+      ) : (
+        <>
+          <Save className="h-4 w-4" />
+          {editingCollegeId ? "Update College" : "Save College"}
+        </>
+      )}
+    </button>
+
+  </div>
+</div>
           </form>
           
         )}
