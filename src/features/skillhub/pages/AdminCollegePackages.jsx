@@ -6,17 +6,68 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+   Eye,
+  Pencil,
+  Trash2,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 
 import Shell from "@/features/skillhub/components/Shell";
 import { api } from "@/services/api";
+import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 export default function AdminCollegePackages() {
   const [packages, setPackages] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [openCollege, setOpenCollege] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+const [openCollege, setOpenCollege] = useState(null);
+const [selectedPackage, setSelectedPackage] = useState(null);
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [deleting, setDeleting] = useState(false);
+const [searchParams] = useSearchParams();
+const packageId = searchParams.get("packageId");
+
+useEffect(() => {
+  if (!packageId) return;
+
+  loadExistingPackage(packageId);
+}, [packageId]);
+
+const loadExistingPackage = async (id) => {
+  try {
+    setLoading(true);
+
+    const response = await api.getCollegePackage(id);
+
+    const packageData = response?.data || response;
+
+    console.log("Existing package:", packageData);
+
+    // Set package information
+    setPackageName(packageData.package_name || "");
+    setDescription(packageData.description || "");
+
+    // Set selected courses
+    setSelectedCourses(packageData.course_ids || []);
+
+  } catch (error) {
+    console.error(
+      "Failed to load package:",
+      error?.response?.data || error
+    );
+
+    toast.error(
+      error?.response?.data?.detail ||
+        "Failed to load package"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==================================================
   // LOAD DATA
@@ -103,13 +154,45 @@ export default function AdminCollegePackages() {
   // SEARCH COLLEGES
   // ==================================================
 
-  const filteredCollegeGroups = Object.entries(
-    collegeGroups
-  ).filter(([collegeName]) =>
-    collegeName
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+ const filteredCollegeGroups = Object.entries(
+  collegeGroups
+).filter(([collegeName, collegePackages]) => {
+  const searchValue = search.toLowerCase().trim();
+
+  if (!searchValue) return true;
+
+  // Search college name
+  if (collegeName.toLowerCase().includes(searchValue)) {
+    return true;
+  }
+
+  // Search package name and course name
+  return collegePackages.some((collegePackage) => {
+    const packageName = (
+      collegePackage.package_name ||
+      collegePackage.name ||
+      collegePackage.title ||
+      ""
+    ).toLowerCase();
+
+    if (packageName.includes(searchValue)) {
+      return true;
+    }
+
+    const packageCourses =
+      getPackageCourses(collegePackage);
+
+    return packageCourses.some((course) => {
+      const courseName = (
+        course.title ||
+        course.name ||
+        ""
+      ).toLowerCase();
+
+      return courseName.includes(searchValue);
+    });
+  });
+});
 
   // ==================================================
   // TOGGLE COLLEGE
@@ -120,6 +203,105 @@ export default function AdminCollegePackages() {
       previous === collegeName ? null : collegeName
     );
   };
+
+  // ==================================================
+// VIEW PACKAGE
+// ==================================================
+
+const handleViewPackage = async (collegePackage) => {
+  const packageId =
+    collegePackage.id ||
+    collegePackage.package_id;
+
+  if (!packageId) {
+    toast.error("Package ID not found");
+    return;
+  }
+
+  // Open immediately using existing package data
+  setSelectedPackage(collegePackage);
+
+  try {
+    const response = await api.getCollegePackage(packageId);
+
+    // Replace with complete API response
+    setSelectedPackage(response);
+  } catch (error) {
+    console.error(
+      "Failed to load package details:",
+      error?.response?.data || error
+    );
+
+    toast.error("Failed to load package details");
+  }
+};
+
+// ==================================================
+// EDIT PACKAGE
+// ==================================================
+
+const handleEditPackage = (collegePackage) => {
+  // Navigate to Course Builder with package ID
+  const packageId =
+    collegePackage.id ||
+    collegePackage.package_id;
+
+  if (!packageId) {
+    toast.error("Package ID not found");
+    return;
+  }
+
+  // Change this route if your builder uses another edit route
+  window.location.href =
+    `/skillhub/admin/builder?packageId=${packageId}`;
+};
+
+// ==================================================
+// DELETE PACKAGE
+// ==================================================
+
+const handleDeletePackage = (collegePackage) => {
+  setSelectedPackage(collegePackage);
+  setShowDeleteModal(true);
+};
+
+const confirmDeletePackage = async () => {
+  if (!selectedPackage) return;
+
+  const packageId =
+    selectedPackage.id ||
+    selectedPackage.package_id;
+
+  if (!packageId) {
+    toast.error("Package ID not found");
+    return;
+  }
+
+  try {
+    setDeleting(true);
+
+    await api.deleteCollegePackage(packageId);
+
+    toast.success("College package deleted successfully");
+
+    setShowDeleteModal(false);
+    setSelectedPackage(null);
+
+    await loadData();
+  } catch (error) {
+    console.error(
+      "Failed to delete college package:",
+      error?.response?.data || error
+    );
+
+    toast.error(
+      error?.response?.data?.detail ||
+        "Failed to delete college package"
+    );
+  } finally {
+    setDeleting(false);
+  }
+};
 
   // ==================================================
   // RENDER
@@ -167,7 +349,7 @@ export default function AdminCollegePackages() {
                 onChange={(e) =>
                   setSearch(e.target.value)
                 }
-                placeholder="Search college..."
+                placeholder="Search college, package or course..."
                 className="
                   w-full
                   rounded-xl
@@ -252,327 +434,521 @@ export default function AdminCollegePackages() {
           )}
 
         {/* ==========================================
-            COLLEGE LIST
-        ========================================== */}
+    COLLEGE PACKAGE CARDS
+========================================== */}
 
-        {!loading &&
-          filteredCollegeGroups.length > 0 && (
-            <div className="space-y-6">
+{!loading && filteredCollegeGroups.length > 0 && (
+  <div className="space-y-10">
+    {filteredCollegeGroups.map(
+      ([collegeName, collegePackages]) => (
+        <section key={collegeName} className="space-y-5">
 
-              {filteredCollegeGroups.map(
-                ([collegeName, collegePackages]) => {
+          {/* College Header */}
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
+              <GraduationCap className="h-5 w-5 text-cyan-400" />
+            </div>
 
-                  // ------------------------------------------
-                  // Combine all courses from all packages
-                  // belonging to this college
-                  // ------------------------------------------
+            <div>
+              <h2 className="text-xl font-black text-white">
+                {collegeName}
+              </h2>
 
-                  const collegeCourses = [];
+              <p className="mt-1 text-sm text-slate-500">
+                {collegePackages.length}{" "}
+                {collegePackages.length === 1
+                  ? "Course Package"
+                  : "Course Packages"}
+              </p>
+            </div>
+          </div>
 
-                  collegePackages.forEach(
-                    (collegePackage) => {
-                      const packageCourses =
-                        getPackageCourses(
-                          collegePackage
-                        );
+          {/* Package Cards */}
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {collegePackages.map((collegePackage, index) => {
+  const packageCourses =
+    getPackageCourses(collegePackage);
 
-                      packageCourses.forEach((course) => {
+  const packageName =
+    collegePackage.package_name ||
+    collegePackage.name ||
+    collegePackage.title ||
+    "College Package";
 
-                        const alreadyExists =
-                          collegeCourses.some(
-                            (existingCourse) =>
-                              String(existingCourse.id) ===
-                              String(course.id)
-                          );
+  const packageDescription =
+    collegePackage.description ||
+    collegePackage.package_description ||
+    "Courses provided by your college.";
 
-                        if (!alreadyExists) {
-                          collegeCourses.push(course);
-                        }
-                      });
-                    }
-                  );
+  return (
+    <div
+      key={
+        collegePackage.id ||
+        collegePackage.package_id ||
+        index
+      }
+      className="
+        group
+        relative
+        overflow-hidden
+        rounded-3xl
+        border
+        border-white/10
+        bg-gradient-to-br
+        from-violet-500/20
+        via-cyan-500/10
+        to-slate-950
+        p-5
+        transition
+        duration-300
+        hover:-translate-y-1
+        hover:border-cyan-400/30
+        hover:shadow-xl
+        hover:shadow-cyan-500/5
+      "
+    >
+      {/* Decorative Glow */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -right-16
+          -top-16
+          h-40
+          w-40
+          rounded-full
+          bg-cyan-400/10
+          blur-3xl
+          transition
+          group-hover:bg-cyan-400/20
+        "
+      />
 
-                  const isOpen =
-                    openCollege === collegeName;
+      <div className="relative">
 
-                  return (
-                    <div
-                      key={collegeName}
-                      className="
-                        overflow-hidden
-                        rounded-2xl
-                        border
-                        border-white/10
-                        bg-white/[0.03]
-                      "
-                    >
+        {/* Package Header */}
+        <div className="flex items-start justify-between gap-4">
 
-                      {/* ==================================
-                          COLLEGE HEADER
-                      ================================== */}
+          <div className="min-w-0">
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toggleCollege(collegeName)
-                        }
-                        className="
-                          flex
-                          w-full
-                          items-center
-                          justify-between
-                          px-6
-                          py-5
-                          text-left
-                          transition
-                          hover:bg-white/[0.04]
-                        "
-                      >
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
+              Course Package
+            </p>
 
-                        <div className="flex items-center gap-4">
+            <h3 className="mt-2 text-xl font-black text-white">
+              {packageName}
+            </h3>
 
-                          <div
-                            className="
-                              flex
-                              h-12
-                              w-12
-                              items-center
-                              justify-center
-                              rounded-xl
-                              border
-                              border-violet-400/20
-                              bg-violet-500/10
-                            "
-                          >
-                            <GraduationCap
-                              size={24}
-                              className="text-violet-400"
-                            />
-                          </div>
+            <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
+              {packageDescription}
+            </p>
 
-                          <div>
-                            <h2 className="text-lg font-bold text-white">
-                              {collegeName}
-                            </h2>
+          </div>
 
-                            <p className="mt-1 text-sm text-slate-500">
-                              {collegeCourses.length}{" "}
-                              {collegeCourses.length === 1
-                                ? "Course"
-                                : "Courses"}
-                            </p>
-                          </div>
+          {/* Package Icon */}
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/10">
+            <BookOpen className="h-5 w-5 text-cyan-400" />
+          </div>
 
-                        </div>
+        </div>
 
-                        <div
-                          className="
-                            flex
-                            h-9
-                            w-9
-                            items-center
-                            justify-center
-                            rounded-lg
-                            bg-white/[0.05]
-                          "
-                        >
-                          {isOpen ? (
-                            <ChevronUp
-                              size={18}
-                              className="text-cyan-400"
-                            />
-                          ) : (
-                            <ChevronDown
-                              size={18}
-                              className="text-slate-400"
-                            />
-                          )}
-                        </div>
+        {/* Course Count */}
+        <div className="mt-5 flex items-center gap-2">
 
-                      </button>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-300">
+            {packageCourses.length}{" "}
+            {packageCourses.length === 1
+              ? "Course"
+              : "Courses"}
+          </span>
 
-                      {/* ==================================
-                          COURSES
-                      ================================== */}
+        </div>
 
-                      {isOpen && (
-                        <div className="border-t border-white/10 p-6">
+        {/* Actions */}
+        <div className="mt-5 flex items-center gap-2">
 
-                          {collegeCourses.length === 0 ? (
-                            <div className="py-8 text-center">
+          {/* View */}
+          <button
+            type="button"
+            onClick={() =>
+              handleViewPackage(collegePackage)
+            }
+            className="
+              inline-flex
+              flex-1
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-cyan-400/20
+              bg-cyan-400/10
+              px-3
+              py-2.5
+              text-xs
+              font-bold
+              text-cyan-300
+              transition
+              hover:bg-cyan-400/20
+              hover:text-cyan-200
+            "
+          >
+            <Eye className="h-4 w-4" />
+            View
+          </button>
 
-                              <BookOpen
-                                className="mx-auto h-8 w-8 text-slate-600"
-                              />
+          {/* Edit
+          <button
+            type="button"
+            onClick={() =>
+              handleEditPackage(collegePackage)
+            }
+            className="
+              inline-flex
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-white/10
+              bg-white/[0.04]
+              px-3
+              py-2.5
+              text-xs
+              font-bold
+              text-slate-300
+              transition
+              hover:bg-white/10
+              hover:text-white
+            "
+          >
+            <Pencil className="h-4 w-4" />
+            Edit
+          </button> */}
 
-                              <p className="mt-3 text-sm text-slate-500">
-                                No courses found for this college.
-                              </p>
+          {/* Delete */}
+          <button
+            type="button"
+            onClick={() =>
+              handleDeletePackage(collegePackage)
+            }
+            className="
+              inline-flex
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-rose-400/20
+              bg-rose-400/10
+              px-3
+              py-2.5
+              text-rose-300
+              transition
+              hover:bg-rose-400/20
+              hover:text-rose-200
+            "
+            aria-label="Delete package"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
 
-                            </div>
-                          ) : (
-                            <div
-                              className="
-                                grid
-                                gap-4
-                                sm:grid-cols-2
-                                lg:grid-cols-3
-                              "
-                            >
+        </div>
 
-                              {collegeCourses.map(
-                                (course) => (
-                                  <div
-                                    key={course.id}
-                                    className="
-                                      rounded-xl
-                                      border
-                                      border-white/10
-                                      bg-slate-950/40
-                                      p-4
-                                      transition
-                                      hover:border-cyan-400/30
-                                      hover:bg-white/[0.04]
-                                    "
-                                  >
+      </div>
+    </div>
+  );
+})}
+          </div>
 
-                                    {/* Course thumbnail/icon */}
+        </section>
+      )
+    )}
+  </div>
+)}
 
-                                    <div className="flex items-center gap-3">
 
-                                      <div
-                                        className="
-                                          flex
-                                          h-11
-                                          w-11
-                                          shrink-0
-                                          items-center
-                                          justify-center
-                                          overflow-hidden
-                                          rounded-xl
-                                          border
-                                          border-cyan-400/20
-                                          bg-cyan-400/10
-                                        "
-                                      >
+{/* ==========================================
+    VIEW PACKAGE MODAL
+========================================== */}
 
-                                        {course.thumbnail ||
-                                        course.thumbnail_url ? (
-                                          <img
-                                            src={
-                                              course.thumbnail ||
-                                              course.thumbnail_url
-                                            }
-                                            alt={course.title}
-                                            className="
-                                              h-full
-                                              w-full
-                                              object-cover
-                                            "
-                                          />
-                                        ) : (
-                                          <BookOpen
-                                            size={20}
-                                            className="text-cyan-400"
-                                          />
-                                        )}
+{selectedPackage && !showDeleteModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
 
-                                      </div>
+    <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
 
-                                      <div className="min-w-0">
+      {/* Modal Header */}
+      <div className="flex items-start justify-between border-b border-white/10 p-6">
 
-                                        <h3
-                                          className="
-                                            truncate
-                                            text-sm
-                                            font-bold
-                                            text-white
-                                          "
-                                        >
-                                          {course.title}
-                                        </h3>
+        <div className="flex items-start gap-4">
 
-                                        <p
-                                          className="
-                                            mt-1
-                                            truncate
-                                            text-xs
-                                            text-slate-500
-                                          "
-                                        >
-                                          {course.category ||
-                                            "Course"}
-                                        </p>
+          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
+            <BookOpen className="h-6 w-6 text-cyan-400" />
+          </div>
 
-                                      </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
+              Course Package
+            </p>
 
-                                    </div>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              {selectedPackage.package_name ||
+                selectedPackage.name ||
+                selectedPackage.title ||
+                "College Package"}
+            </h2>
 
-                                    {/* Level count */}
+            <p className="mt-1 text-sm text-slate-400">
+              {selectedPackage.college_name ||
+                "College"}
+            </p>
+          </div>
 
-                                    <div
-                                      className="
-                                        mt-4
-                                        flex
-                                        items-center
-                                        justify-between
-                                      "
-                                    >
+        </div>
 
-                                      <div
-                                        className="
-                                          flex
-                                          items-center
-                                          gap-2
-                                          text-xs
-                                          text-slate-500
-                                        "
-                                      >
-                                        <Layers size={14} />
+        <button
+          type="button"
+          onClick={() => setSelectedPackage(null)}
+          className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
-                                        {course.level_count ?? 0}{" "}
-                                        {Number(
-                                          course.level_count
-                                        ) === 1
-                                          ? "Level"
-                                          : "Levels"}
-                                      </div>
+      </div>
 
-                                      <span
-                                        className="
-                                          rounded-full
-                                          bg-cyan-400/10
-                                          px-2.5
-                                          py-1
-                                          text-[11px]
-                                          font-semibold
-                                          text-cyan-400
-                                        "
-                                      >
-                                        Course
-                                      </span>
+      {/* Modal Content */}
+      <div className="max-h-[60vh] overflow-y-auto p-6">
 
-                                    </div>
+        <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
 
-                                  </div>
-                                )
-                              )}
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Description
+          </p>
 
-                            </div>
-                          )}
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            {selectedPackage.description ||
+              selectedPackage.package_description ||
+              "No description available"}
+          </p>
 
-                        </div>
+        </div>
+
+        <div className="mb-4 flex items-center justify-between">
+
+          <h3 className="text-lg font-bold text-white">
+            Courses
+          </h3>
+
+          <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-300">
+            {getPackageCourses(selectedPackage).length}{" "}
+            Courses
+          </span>
+
+        </div>
+
+        <div className="space-y-3">
+
+          {getPackageCourses(selectedPackage).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
+              <BookOpen className="mx-auto h-8 w-8 text-slate-600" />
+
+              <p className="mt-3 text-sm text-slate-500">
+                No courses assigned to this package.
+              </p>
+            </div>
+          ) : (
+            getPackageCourses(selectedPackage).map(
+              (course) => (
+                <div
+                  key={course.id}
+                  className="
+                    rounded-2xl
+                    border
+                    border-white/10
+                    bg-white/[0.04]
+                    p-4
+                  "
+                >
+                  <div className="flex items-start gap-3">
+
+                    <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
+
+                      {course.thumbnail ||
+                      course.thumbnail_url ? (
+                        <img
+                          src={
+                            course.thumbnail ||
+                            course.thumbnail_url
+                          }
+                          alt={course.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <BookOpen className="h-5 w-5 text-cyan-400" />
                       )}
 
                     </div>
-                  );
-                }
-              )}
 
-            </div>
+                    <div className="min-w-0 flex-1">
+
+                      <h4 className="text-sm font-bold text-white">
+                        {course.title ||
+                          course.name ||
+                          "Untitled Course"}
+                      </h4>
+
+                      <p className="mt-1 text-sm leading-5 text-slate-400">
+                        {course.description ||
+                          "No description available"}
+                      </p>
+
+                      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+
+                        <Layers className="h-3.5 w-3.5" />
+
+                        {course.level_count ?? 0}{" "}
+                        {Number(course.level_count) === 1
+                          ? "Level"
+                          : "Levels"}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+              )
+            )
           )}
+
+        </div>
+
+      </div>
+
+      {/* Modal Footer */}
+      <div className="flex justify-end border-t border-white/10 p-5">
+
+        <button
+          type="button"
+          onClick={() => setSelectedPackage(null)}
+          className="
+            rounded-xl
+            border
+            border-white/10
+            bg-white/[0.05]
+            px-5
+            py-2.5
+            text-sm
+            font-bold
+            text-slate-300
+            transition
+            hover:bg-white/10
+            hover:text-white
+          "
+        >
+          Close
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
+
+
+{/* ==========================================
+    DELETE PACKAGE MODAL
+========================================== */}
+
+{showDeleteModal && selectedPackage && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+
+    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+
+      <div className="flex items-start gap-4">
+
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-400/10 ring-1 ring-rose-400/20">
+          <AlertTriangle className="h-6 w-6 text-rose-400" />
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-white">
+            Delete Package?
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-white">
+              {selectedPackage.package_name ||
+                selectedPackage.name ||
+                selectedPackage.title ||
+                "this package"}
+            </span>
+            ? This action cannot be undone.
+          </p>
+        </div>
+
+      </div>
+
+      <div className="mt-6 flex justify-end gap-3">
+
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={() => {
+            setShowDeleteModal(false);
+            setSelectedPackage(null);
+          }}
+          className="
+            rounded-xl
+            border
+            border-white/10
+            bg-white/[0.04]
+            px-5
+            py-2.5
+            text-sm
+            font-bold
+            text-slate-300
+            hover:bg-white/10
+          "
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={confirmDeletePackage}
+          className="
+            inline-flex
+            items-center
+            gap-2
+            rounded-xl
+            bg-rose-500
+            px-5
+            py-2.5
+            text-sm
+            font-bold
+            text-white
+            transition
+            hover:bg-rose-600
+            disabled:cursor-not-allowed
+            disabled:opacity-60
+          "
+        >
+          <Trash2 className="h-4 w-4" />
+
+          {deleting ? "Deleting..." : "Delete"}
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
 
       </div>
     </Shell>
+
+    
   );
 }

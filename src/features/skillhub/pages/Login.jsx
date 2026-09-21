@@ -113,7 +113,7 @@ const { user, ready, adminLogin } = useAcademyAuth();
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Sign In <ArrowRight className="h-4 w-4" /></>}
           </button>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 flex justify-center">
             {/* <button type="button" onClick={() => quick("student")} data-testid="quick-student"
               className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10">
               <GraduationCap className="h-4 w-4 text-cyan-400" /> Demo Student

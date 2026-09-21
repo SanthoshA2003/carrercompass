@@ -327,103 +327,135 @@ export default function Dashboard() {
               !collegeCoursesError &&
               packageCourses.length > 0 && (
                 <div className="grid gap-6 lg:grid-cols-2">
-                  {packageCourses.map((course, index) => {
-                    const courseId =
-                      course.course_id ||
-                      course.id ||
-                      course.courseId;
+                 {Object.entries(
+  packageCourses.reduce((packages, course) => {
+    const packageName =
+      course.package_name || "College Package";
 
-                    const courseTitle =
-                      course.title ||
-                      course.name ||
-                      course.course_name ||
-                      "Untitled Course";
+    if (!packages[packageName]) {
+      packages[packageName] = [];
+    }
 
-                    const courseDescription =
-                      course.description ||
-                      "College assigned course";
+    packages[packageName].push(course);
 
-                    return (
-                      <motion.div
-                        key={courseId || index}
-                        initial={{
-                          opacity: 0,
-                          y: 20,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          delay: index * 0.1,
-                        }}
-                        className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-500/20 via-cyan-500/10 to-slate-900 p-6"
-                      >
-                        {/* Decorative Glow */}
+    return packages;
+  }, {})
+).map(([packageName, packageCourses], packageIndex) => (
+  <motion.div
+    key={packageName}
+    initial={{
+      opacity: 0,
+      y: 20,
+    }}
+    animate={{
+      opacity: 1,
+      y: 0,
+    }}
+    transition={{
+      delay: packageIndex * 0.1,
+    }}
+className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/20 via-cyan-500/10 to-slate-900 p-4"
+  >
+    {/* Decorative Glow */}
+    <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
 
-                        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+    <div className="relative">
+      {/* Package Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
+            Course Package
+          </p>
 
-                        <div className="relative">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
-                                College Package
-                              </p>
+<h2 className="mt-1 text-xl font-black text-white">
+  {packageName}
+</h2>
 
-                              <h2 className="mt-2 text-xl font-black text-white">
-                                {courseTitle}
-                              </h2>
+<p className="mt-1 text-xs text-slate-400">
+  {packageCourses[0]?.package_description ||
+    packageCourses[0]?.description ||
+    "Courses provided by your college"}
+</p>
+        </div>
 
-                              <p className="mt-2 text-sm leading-6 text-slate-400">
-                                {courseDescription}
-                              </p>
-                            </div>
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10">
+  <Package className="h-5 w-5 text-cyan-400" />
+</div>
+      </div>
 
-                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400/10">
-                              <BookOpen className="h-6 w-6 text-cyan-400" />
-                            </div>
-                          </div>
+      {/* Courses inside package */}
+      <div className="mt-4 space-y-2">
+        {packageCourses.map((course) => {
+          const courseId =
+            course.course_id ||
+            course.id ||
+            course.courseId;
 
-                          {/* Course Information */}
+          const courseTitle =
+            course.title ||
+            course.name ||
+            course.course_name ||
+            "Untitled Course";
 
-                          <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
-                            {course.difficulty && (
-                              <span className="rounded-full bg-white/10 px-3 py-1">
-                                {course.difficulty}
-                              </span>
-                            )}
+          const courseDescription =
+            course.description ||
+            "College assigned course";
 
-                            {course.stage && (
-                              <span className="rounded-full bg-white/10 px-3 py-1">
-                                {course.stage}
-                              </span>
-                            )}
+          return (
+            <div
+              key={courseId}
+              className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-white">
+                    {courseTitle}
+                  </h3>
 
-                            {course.level && (
-                              <span className="rounded-full bg-white/10 px-3 py-1">
-                                {course.level}
-                              </span>
-                            )}
-                          </div>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {courseDescription}
+                  </p>
 
-                          {/* Start Course Button */}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {course.difficulty && (
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-300">
+                        {course.difficulty}
+                      </span>
+                    )}
 
-                          <button
-                            type="button"
-                            disabled={!courseId}
-                            onClick={() =>
-                              handleStartCourse(course)
-                            }
-                            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Start Course
+                    {course.stage && (
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-300">
+                        {course.stage}
+                      </span>
+                    )}
 
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                    {course.level && (
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-300">
+                        {course.level}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!courseId}
+                  onClick={() =>
+                    handleStartCourse(course)
+                  }
+className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-900 transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Start Course
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </motion.div>
+))}
                 </div>
               )}
           </section>

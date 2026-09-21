@@ -131,7 +131,19 @@ export const AuthProvider = ({ children }) => {
     setOpen(true);
   }, []);
 
+  const handleGoogleSuccess = useCallback(
+  (googleUser) => {
+    setUser(googleUser);
+
+    // Show college popup only after successful Google login
+    openCollegePopup();
+  },
+  [openCollegePopup]
+);
+
   /* ---------------- Session Restore ---------------- */
+
+// ---------------- Session Restore ----------------
 
 useEffect(() => {
   const token = localStorage.getItem("dp_token");
@@ -144,28 +156,20 @@ useEffect(() => {
 
   api.me()
     .then((currentUser) => {
+      // Only restore the existing session.
+      // DO NOT open the college popup here.
       setUser(currentUser);
-
-      const collegeConnected =
-        localStorage.getItem("college_connected") === "true";
-
-      const collegeCode =
-        localStorage.getItem("college_code");
-
-      // Show popup only if college is not connected
-      // and no college code was saved
-      if (!collegeConnected && !collegeCode) {
-        openCollegePopup();
-      }
     })
     .catch(() => {
       localStorage.removeItem("dp_token");
+      localStorage.removeItem("college_code");
+      localStorage.removeItem("college_connected");
       setUser(false);
     })
     .finally(() => {
       setReady(true);
     });
-}, [openCollegePopup]);
+}, []);
 
   /* ---------------- Open Auth Popup ---------------- */
 
@@ -382,18 +386,19 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthed: !!user,
-        ready,
-        openAuth,
-        closeAuth,
-        logout,
-        refresh,
-        setUser,
-      }}
-    >
+   <AuthContext.Provider
+  value={{
+    user,
+    isAuthed: !!user,
+    ready,
+    openAuth,
+    closeAuth,
+    logout,
+    refresh,
+    setUser,
+    handleGoogleSuccess,
+  }}
+>
       {children}
 
       <AnimatePresence>
