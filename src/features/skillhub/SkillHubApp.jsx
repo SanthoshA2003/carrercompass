@@ -17,6 +17,7 @@ import AdminBuilder from "@/features/skillhub/pages/AdminBuilder";
 import AdminCourses from "@/features/skillhub/pages/AdminCourses";
 import AdminCourseLevels from "@/features/skillhub/pages/AdminCourseLevels";
 import CollegeManagement from "@/features/skillhub/pages/CollegeManagement";
+import StudentImport from "./pages/StudentImport";
 import {
   AdminStudents,
   Certificates,
@@ -199,7 +200,14 @@ export default function SkillHubApp() {
             </Guard>
           }
         />
-
+<Route
+  path="admin/students/import"
+  element={
+    <Guard admin>
+      <StudentImport />
+    </Guard>
+  }
+/>
         {/* ==============================
             ADMIN STUDENTS
         ============================== */}
