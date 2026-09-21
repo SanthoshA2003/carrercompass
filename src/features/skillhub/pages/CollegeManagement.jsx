@@ -381,6 +381,7 @@ const handleViewCollege = async (college) => {
 });
 
   return (
+    
     <Shell>
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Page Header */}
@@ -709,9 +710,12 @@ const handleViewCollege = async (college) => {
     </div>
   ))}
   {selectedCollege && (
+    
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+  
     <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
       {/* Modal Header */}
+      
       <div className="flex items-start justify-between border-b border-white/10 p-5">
         <div className="flex items-start gap-3">
           <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
@@ -875,17 +879,32 @@ const handleViewCollege = async (college) => {
           </p>
         </div>
       </div>
+{/* Modal Footer */}
+<div className="flex items-center justify-between border-t border-white/10 p-5">
 
-      {/* Modal Footer */}
-      <div className="flex justify-end border-t border-white/10 p-5">
-        <button
-          type="button"
-          onClick={() => setSelectedCollege(null)}
-          className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-        >
-          Close
-        </button>
-      </div>
+  {/* Add Student - inside popup, bottom-left */}
+  <button
+    type="button"
+   onClick={() => {
+  window.location.href =
+    `/skillhub/admin/students/import?collegeId=${selectedCollege.id}`;
+}}
+    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:scale-[1.02]"
+  >
+    <Plus className="h-4 w-4" />
+    Add Student
+  </button>
+
+  {/* Close - bottom-right */}
+  <button
+    type="button"
+    onClick={() => setSelectedCollege(null)}
+    className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+  >
+    Close
+  </button>
+
+</div>
     </div>
   </div>
 )}
@@ -1168,7 +1187,9 @@ const handleViewCollege = async (college) => {
                 )}
               </button>
             </div>
+            
           </form>
+          
         )}
       </div>
     </Shell>
