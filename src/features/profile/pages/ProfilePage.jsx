@@ -3731,7 +3731,7 @@ const handleResumeChange = (event) => {
   {p.resumeUrl ? (
     <div className="flex items-center gap-4">
       <span className="max-w-[350px] truncate text-[15px] font-semibold text-slate-800">
-        {p.resumeFileName || "No resume uploaded"}
+        {p.resumeFileName || "Resume uploaded"}
       </span>
 
       <a
@@ -4025,67 +4025,147 @@ const handleResumeChange = (event) => {
 
     {/* RESUME - EDIT MODE */}
 <div className="sm:col-span-2">
-  <PLabel>Resume</PLabel>
+  <PLabel>
+    Resume
+  </PLabel>
 
   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
 
-      {/* CURRENT / NEW FILE NAME */}
-      <span className="max-w-[350px] truncate text-[15px] font-semibold text-slate-800">
-        {resumeFile?.name ||
-          p.resumeFileName ||
-          "No resume uploaded"}
-      </span>
+      {/* Resume Information */}
+      <div className="min-w-0">
+        <p className="font-semibold text-slate-800">
+          {resumeFile
+            ? resumeFile.name
+            : p.resumeFileName
+              ? p.resumeFileName
+              : p.resumeUrl
+                ? "Resume uploaded"
+                : "Upload your resume"}
+        </p>
 
-      {/* VIEW CURRENT RESUME */}
-      {p.resumeUrl && !resumeFile && (
-        <a
-          href={p.resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100 hover:text-blue-700"
+        <p className="mt-1 text-xs text-slate-500">
+          PDF, DOC or DOCX • Maximum 5MB
+        </p>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
+
+        {/* View Resume */}
+        {p.resumeUrl && !resumeFile && (
+          <a
+            href={p.resumeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="
+              inline-flex
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-slate-200
+              bg-white
+              px-5
+              py-2.5
+              text-sm
+              font-semibold
+              text-slate-700
+              transition
+              hover:bg-slate-100
+            "
+          >
+            View Resume
+          </a>
+        )}
+
+        {/* Change / Choose Resume */}
+        <label
+          className="
+            inline-flex
+            cursor-pointer
+            items-center
+            justify-center
+            rounded-full
+            border
+            border-blue-200
+            bg-white
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-blue-600
+            transition
+            hover:bg-blue-50
+          "
         >
-          View Resume
-        </a>
-      )}
+          {resumeUploading
+            ? "Uploading..."
+            : resumeFile || p.resumeUrl
+              ? "Change Resume"
+              : "Choose Resume"}
 
-      {/* CHANGE RESUME - ONLY EDIT MODE */}
-      <label
-        className="
-          inline-flex
-          cursor-pointer
-          items-center
-          rounded-full
-          border
-          border-slate-200
-          bg-white
-          px-4
-          py-2
-          text-sm
-          font-semibold
-          text-slate-700
-          transition
-          hover:border-blue-300
-          hover:bg-blue-50
-          hover:text-blue-600
-        "
-      >
-        Change Resume
-
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          className="hidden"
-          onChange={handleResumeChange}
-          disabled={saving || resumeUploading}
-        />
-      </label>
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={handleResumeChange}
+            disabled={saving || resumeUploading}
+          />
+        </label>
+      </div>
     </div>
 
-    {/* NEW FILE MESSAGE */}
+    {/* Newly Selected Resume */}
+   {resumeFile && (
+  <div className="mt-3 rounded-xl bg-white px-4 py-3">
+    <div className="flex items-center gap-4">
+      
+      {/* Resume Details */}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-slate-700">
+          {resumeFile.name}
+        </p>
+
+        <p className="mt-1 text-xs text-slate-400">
+          {(resumeFile.size / 1024 / 1024).toFixed(2)} MB
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-4">
+
+        {/* View Selected Resume */}
+        <button
+          type="button"
+          onClick={() => {
+            const resumeUrl = URL.createObjectURL(resumeFile);
+            window.open(resumeUrl, "_blank");
+          }}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700"
+        >
+          View
+        </button>
+
+        {/* Remove */}
+        <button
+          type="button"
+          onClick={() => setResumeFile(null)}
+          className="text-sm font-medium text-red-500 hover:text-red-600"
+          disabled={saving || resumeUploading}
+        >
+          Remove
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
+
+    {/* Save Reminder */}
     {resumeFile && (
       <p className="mt-2 text-xs font-medium text-blue-600">
-        New resume selected. Click "Update Profile" to save it.
+        New resume selected. Click "Save Profile" to save it.
       </p>
     )}
   </div>
