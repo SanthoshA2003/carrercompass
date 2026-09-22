@@ -136,6 +136,14 @@ export const api = {
       })
       .then((r) => r.data),
 
+      // LINK COLLEGE BY STUDENT CODE
+linkCollegeByStudentCode: (student_code) =>
+  client
+    .post("/students/student-code", {
+      student_code,
+    })
+    .then((r) => r.data),
+
   googleSession: (session_id) =>
     client
       .post("/auth/google/session", {

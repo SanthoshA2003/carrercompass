@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState("phone");
 
-  const [collegeCode, setCollegeCode] = useState("");
+const [studentCode, setStudentCode] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
 
@@ -125,11 +125,11 @@ export const AuthProvider = ({ children }) => {
 
   /* ---------------- College Popup ---------------- */
 
-  const openCollegePopup = useCallback(() => {
-    setCollegeCode("");
-    setStep("college");
-    setOpen(true);
-  }, []);
+ const openCollegePopup = useCallback(() => {
+  setStudentCode("");
+  setStep("studentCode");
+  setOpen(true);
+}, []);
 
   const handleGoogleSuccess = useCallback(
   (googleUser) => {
@@ -161,9 +161,10 @@ useEffect(() => {
       setUser(currentUser);
     })
     .catch(() => {
-      localStorage.removeItem("dp_token");
-      localStorage.removeItem("college_code");
-      localStorage.removeItem("college_connected");
+  localStorage.removeItem("dp_token");
+localStorage.removeItem("student_code");
+localStorage.removeItem("college_code");
+localStorage.removeItem("college_connected");
       setUser(false);
     })
     .finally(() => {
@@ -183,7 +184,7 @@ useEffect(() => {
       setStep("phone");
       setPhone("");
       setOtp("");
-      setCollegeCode("");
+      setStudentCode("");
 
       setOb({
         name: "",
@@ -203,13 +204,14 @@ useEffect(() => {
 
   /* ---------------- Logout ---------------- */
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("dp_token");
-    localStorage.removeItem("college_code");
-    localStorage.removeItem("college_connected");
+const logout = useCallback(() => {
+  localStorage.removeItem("dp_token");
+  localStorage.removeItem("student_code");
+  localStorage.removeItem("college_code");
+  localStorage.removeItem("college_connected");
 
-    setUser(false);
-  }, []);
+  setUser(false);
+}, []);
 
   /* ---------------- Refresh User ---------------- */
 
@@ -304,43 +306,80 @@ useEffect(() => {
 
   /* ---------------- College Continue ---------------- */
 
-  const handleCollegeContinue = async () => {
-    const code = collegeCode.trim().toUpperCase();
+ const handleStudentCodeContinue = async () => {
+  const code = studentCode.trim().toUpperCase();
 
-    if (!code) {
-      toast.error("Please enter your college code");
-      return;
-    }
+  if (!code) {
+    toast.error("Please enter your student code");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await api.joinCollege(code);
+  try {
+    const response =
+      await api.linkCollegeByStudentCode(code);
 
-      localStorage.setItem("college_code", code);
-      localStorage.setItem("college_connected", "true");
+    console.log(
+      "STUDENT CODE RESPONSE:",
+      response
+    );
 
-      toast.success("College connected successfully");
+    localStorage.setItem(
+      "student_code",
+      code
+    );
 
-      setOpen(false);
+    localStorage.setItem(
+      "college_connected",
+      "true"
+    );
 
-      runSuccess(user);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Invalid college code"
+    // Save college code if backend returns it
+    const collegeCodeFromResponse =
+      response?.college?.code ||
+      response?.college?.college_code;
+
+    if (collegeCodeFromResponse) {
+      localStorage.setItem(
+        "college_code",
+        collegeCodeFromResponse
       );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    toast.success(
+      "Student linked successfully"
+    );
+
+    setOpen(false);
+
+    runSuccess(user);
+  } catch (error) {
+    console.error(
+      "Student code linking failed:",
+      error
+    );
+
+    toast.error(
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      "Invalid student code"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ---------------- Continue Without College ---------------- */
 
-  const handleContinueWithoutCollege = () => {
+ const handleContinueWithoutCollege = () => {
+  localStorage.removeItem("student_code");
   localStorage.removeItem("college_code");
 
-  // Remember that the user skipped college connection
-  localStorage.setItem("college_connected", "skipped");
+  localStorage.setItem(
+    "college_connected",
+    "skipped"
+  );
 
   setOpen(false);
 
@@ -832,99 +871,105 @@ useEffect(() => {
 
                   {/* ---------------- COLLEGE STEP ---------------- */}
 
-                  {step === "college" && (
-                    <motion.div
-                      key="college"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="mt-6 w-full"
-                    >
-                      <h3 className="text-2xl font-bold text-slate-900">
-                        Enter your college code
-                      </h3>
+                {step === "studentCode" && (
+  <motion.div
+    key="studentCode"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="mt-6 w-full"
+  >
+    <h3 className="text-2xl font-bold text-slate-900">
+      Enter your student code
+    </h3>
 
-                      <p className="mt-2 text-sm text-slate-500">
-                        Enter your college code to continue.
-                      </p>
+    <p className="mt-2 text-sm text-slate-500">
+      Enter your student code to connect your
+      college account.
+    </p>
 
-                      <div className="mt-6">
-                        <input
-                          type="text"
-                          placeholder="Enter college code"
-                          value={collegeCode}
-                          onChange={(event) =>
-                            setCollegeCode(
-                              event.target.value.toUpperCase()
-                            )
-                          }
-                          className={field}
-                        />
-                      </div>
+    <div className="mt-6">
+      <input
+        type="text"
+        placeholder="Enter student code"
+        value={studentCode}
+        onChange={(event) =>
+          setStudentCode(
+            event.target.value.toUpperCase()
+          )
+        }
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            handleStudentCodeContinue();
+          }
+        }}
+        className={field}
+      />
+    </div>
 
-                      <button
-                        type="button"
-                        onClick={handleCollegeContinue}
-                        disabled={loading}
-                        className="
-                          mt-4
-                          flex
-                          w-full
-                          items-center
-                          justify-center
-                          gap-2
-                          rounded-2xl
-                          bg-gradient-to-r
-                          from-blue-600
-                          to-cyan-500
-                          px-5
-                          py-3.5
-                          text-[16px]
-                          font-semibold
-                          text-white
-                          shadow-lg
-                          transition-all
-                          duration-200
-                          hover:-translate-y-0.5
-                          hover:shadow-xl
-                          disabled:cursor-not-allowed
-                          disabled:opacity-60
-                        "
-                      >
-                        {loading ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <>
-                            Continue
-                            <ArrowRight className="h-4 w-4" />
-                          </>
-                        )}
-                      </button>
+    <button
+      type="button"
+      onClick={handleStudentCodeContinue}
+      disabled={loading}
+      className="
+        mt-4
+        flex
+        w-full
+        items-center
+        justify-center
+        gap-2
+        rounded-2xl
+        bg-gradient-to-r
+        from-blue-600
+        to-cyan-500
+        px-5
+        py-3.5
+        text-[16px]
+        font-semibold
+        text-white
+        shadow-lg
+        transition-all
+        duration-200
+        hover:-translate-y-0.5
+        hover:shadow-xl
+        disabled:cursor-not-allowed
+        disabled:opacity-60
+      "
+    >
+      {loading ? (
+        <Loader2 className="h-5 w-5 animate-spin" />
+      ) : (
+        <>
+          Continue
+          <ArrowRight className="h-4 w-4" />
+        </>
+      )}
+    </button>
 
-                      <button
-                        type="button"
-                        onClick={handleContinueWithoutCollege}
-                        className="
-                          mt-4
-                          w-full
-                          rounded-2xl
-                          border
-                          border-slate-300
-                          bg-white
-                          px-5
-                          py-3.5
-                          text-[15px]
-                          font-semibold
-                          text-slate-700
-                          transition
-                          hover:bg-slate-50
-                        "
-                      >
-                        Continue without college code
-                      </button>
-                    </motion.div>
-                  )}
+    <button
+      type="button"
+      onClick={handleContinueWithoutCollege}
+      className="
+        mt-4
+        w-full
+        rounded-2xl
+        border
+        border-slate-300
+        bg-white
+        px-5
+        py-3.5
+        text-[15px]
+        font-semibold
+        text-slate-700
+        transition
+        hover:bg-slate-50
+      "
+    >
+      Continue without student code
+    </button>
+  </motion.div>
+)}
 
                   {/* ---------------- ONBOARDING STEP ---------------- */}
 

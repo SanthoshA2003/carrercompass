@@ -343,19 +343,17 @@ export default function StudentImport() {
   // CHOOSE + UPLOAD EXCEL TO BACKEND
   // ==================================================
 
-  const handleFileChange = async (event) => {
+ const handleFileChange = async (event) => {
   setError("");
   setSuccess("");
 
-  const selectedFile =
-    event.target.files?.[0];
+  const selectedFile = event.target.files?.[0];
 
   if (!selectedFile) {
     return;
   }
 
-  const fileName =
-    selectedFile.name.toLowerCase();
+  const fileName = selectedFile.name.toLowerCase();
 
   if (
     !fileName.endsWith(".xlsx") &&
@@ -372,57 +370,95 @@ export default function StudentImport() {
   try {
     setUploading(true);
 
-    // ------------------------------------------
-    // LOCAL VALIDATION / PREVIEW
-    // ------------------------------------------
+    // ==========================================
+    // READ EXCEL FOR LOCAL PREVIEW
+    // ==========================================
 
-    await readExcelFile(selectedFile);
+    const excelStudents =
+      await readExcelFile(selectedFile);
 
-    // ------------------------------------------
+    console.log(
+      "EXCEL STUDENTS:",
+      excelStudents
+    );
+
+    // ==========================================
     // SEND EXCEL TO BACKEND
-    // ------------------------------------------
+    // ==========================================
 
     const response =
-  await api.importStudentsExcel(
-    selectedFile,
-    collegeId
-  );
+      await api.importStudentsExcel(
+        selectedFile,
+        collegeId
+      );
 
     console.log(
       "STUDENT IMPORT API RESPONSE:",
       response
     );
 
-    // ------------------------------------------
-    // USE BACKEND RESPONSE
-    // ------------------------------------------
+    // ==========================================
+    // GET BACKEND STUDENTS
+    // ==========================================
 
     const importedStudents =
-      response?.students || [];
+      response?.students ||
+      response?.data?.students ||
+      [];
+
+    console.log(
+      "IMPORTED STUDENTS:",
+      importedStudents
+    );
+
+    // ==========================================
+    // USE BACKEND DATA IF AVAILABLE
+    // OTHERWISE USE EXCEL DATA
+    // ==========================================
+
+    const studentsToDisplay =
+      importedStudents.length > 0
+        ? importedStudents
+        : excelStudents;
 
     setFile(selectedFile);
 
     setStudents(
-      importedStudents.map(
+      studentsToDisplay.map(
         (student, index) => ({
           id:
             student.id ||
             index + 1,
 
           name:
-            student.name || "",
+            student.name ||
+            student.Name ||
+            excelStudents[index]?.name ||
+            "",
 
           email:
-            student.email || "",
+            student.email ||
+            student.Email ||
+            excelStudents[index]?.email ||
+            "",
 
           phone:
-            student.phone || "",
+            student.phone ||
+            student.Phone ||
+            excelStudents[index]?.phone ||
+            "",
 
           department:
-            student.department || "",
+            student.department ||
+            student.Department ||
+            excelStudents[index]?.department ||
+            "",
 
           year:
-            student.year || "",
+            student.year ||
+            student.Year ||
+            excelStudents[index]?.year ||
+            "",
 
           college_id:
             student.college_id ||
@@ -430,14 +466,16 @@ export default function StudentImport() {
 
           student_code:
             student.student_code ||
+            student.studentCode ||
+            student.code ||
             "",
         })
       )
     );
 
-    // ------------------------------------------
-    // UPDATE COLLEGE FROM BACKEND RESPONSE
-    // ------------------------------------------
+    // ==========================================
+    // UPDATE COLLEGE FROM BACKEND
+    // ==========================================
 
     if (response?.college) {
       setCollege({
@@ -455,14 +493,15 @@ export default function StudentImport() {
       });
     }
 
-    // ------------------------------------------
+    // ==========================================
     // SUCCESS
-    // ------------------------------------------
+    // ==========================================
 
     setSuccess(
       response?.message ||
-      `${response?.imported_count || importedStudents.length} student(s) imported successfully.`
+      `${studentsToDisplay.length} student(s) imported successfully.`
     );
+
   } catch (err) {
     console.error(
       "Student Excel import failed:",
@@ -471,10 +510,6 @@ export default function StudentImport() {
 
     setFile(null);
     setStudents([]);
-
-    // ------------------------------------------
-    // SAFE ERROR MESSAGE
-    // ------------------------------------------
 
     const detail =
       err?.response?.data?.detail;
@@ -530,123 +565,130 @@ export default function StudentImport() {
     }
   };
 
-  // ==================================================
-  // GENERATE STUDENT CODES USING BACKEND
-  // ==================================================
+ // ==================================================
+// GENERATE STUDENT CODES USING BACKEND
+// ==================================================
 
-  const generateStudentCodes = async () => {
-    if (!students.length) {
-      setError(
-        "Please upload the Excel file first."
+const generateStudentCodes = async () => {
+  if (!students.length) {
+    setError("Please upload the Excel file first.");
+    return;
+  }
+
+  if (!collegeId) {
+    setError("College ID is missing.");
+    return;
+  }
+
+  try {
+    setError("");
+    setSuccess("");
+    setGeneratingCodes(true);
+
+    const response =
+      await api.generateStudentCodes(collegeId);
+
+    console.log(
+      "GENERATE CODES API RESPONSE:",
+      response
+    );
+
+    const backendStudents =
+      response?.students ||
+      response?.data?.students ||
+      (Array.isArray(response?.data)
+        ? response.data
+        : []);
+
+    if (!Array.isArray(backendStudents)) {
+      throw new Error(
+        "Invalid response from generate codes API."
       );
-      return;
     }
 
-    if (!collegeId) {
-      setError(
-        "College ID is missing."
-      );
-      return;
-    }
+    console.log(
+      "BACKEND GENERATED STUDENTS:",
+      backendStudents
+    );
 
-    try {
-      setError("");
-      setSuccess("");
+    // ==========================================
+    // MATCH BY STUDENT ID
+    // NOT BY ARRAY INDEX
+    // ==========================================
 
-      setGeneratingCodes(true);
-
-      const response =
-        await api.generateStudentCodes(
-          collegeId
-        );
-
-      console.log(
-        "GENERATE CODES API RESPONSE:",
-        response
-      );
-
-      /*
-       * Support common backend response formats.
-       */
-
-      const backendStudents =
-        response?.students ||
-        response?.data?.students ||
-        (Array.isArray(response?.data)
-          ? response.data
-          : null);
-
-      if (Array.isArray(backendStudents)) {
-        setStudents((currentStudents) => {
-          return currentStudents.map(
-            (student, index) => {
-              const backendStudent =
-                backendStudents[index];
-
-              if (!backendStudent) {
-                return student;
-              }
-
-              return {
-                ...student,
-                ...backendStudent,
-
-                name:
-                  backendStudent.name ||
-                  backendStudent.Name ||
-                  student.name,
-
-                email:
-                  backendStudent.email ||
-                  backendStudent.Email ||
-                  student.email,
-
-                phone:
-                  backendStudent.phone ||
-                  backendStudent.Phone ||
-                  student.phone,
-
-                department:
-                  backendStudent.department ||
-                  backendStudent.Department ||
-                  student.department,
-
-                year:
-                  backendStudent.year ||
-                  backendStudent.Year ||
-                  student.year,
-
-                student_code:
-                  backendStudent.student_code ||
-                  backendStudent.studentCode ||
-                  backendStudent.code ||
-                  student.student_code ||
-                  "",
-              };
-            }
+    setStudents((currentStudents) =>
+      currentStudents.map((student) => {
+        const backendStudent =
+          backendStudents.find(
+            (item) =>
+              item.id === student.id
           );
-        });
-      }
 
-      setSuccess(
-        "Student codes generated successfully."
-      );
-    } catch (err) {
-      console.error(
-        "Generate student codes failed:",
-        err
-      );
+        // If backend student is not found,
+        // keep existing student data
+        if (!backendStudent) {
+          return student;
+        }
 
-      setError(
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Unable to generate student codes."
-      );
-    } finally {
-      setGeneratingCodes(false);
-    }
-  };
+        return {
+          ...student,
+
+          // Keep the Excel/imported student data
+          id: student.id,
+
+          name:
+            backendStudent.name ||
+            student.name,
+
+          email:
+            backendStudent.email ||
+            student.email,
+
+          phone:
+            backendStudent.phone ||
+            student.phone,
+
+          department:
+            backendStudent.department ||
+            student.department,
+
+          year:
+            backendStudent.year ||
+            student.year,
+
+          college_id:
+            backendStudent.college_id ||
+            student.college_id ||
+            collegeId,
+
+          // Correct code for this exact student
+          student_code:
+            backendStudent.student_code ||
+            "",
+        };
+      })
+    );
+
+    setSuccess(
+      `${response?.generated_count || 0} student code(s) generated successfully.`
+    );
+
+  } catch (err) {
+    console.error(
+      "Generate student codes failed:",
+      err
+    );
+
+    setError(
+      err?.response?.data?.detail ||
+      err?.response?.data?.message ||
+      err?.message ||
+      "Unable to generate student codes."
+    );
+  } finally {
+    setGeneratingCodes(false);
+  }
+};
 
   // ==================================================
   // EXPORT EXCEL FROM BACKEND

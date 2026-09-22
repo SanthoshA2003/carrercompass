@@ -1,11 +1,31 @@
 import { useEffect, useState } from "react";
-import { Loader2, Award, Search } from "lucide-react";
+import { Loader2, Award, Search, ChevronDown } from "lucide-react";
 import Shell from "@/features/skillhub/components/Shell";
 import { api } from "@/services/api";
 
 export function AdminStudents() {
-  const [students, setStudents] = useState(null);
-  const [search, setSearch] = useState("");
+ const [students, setStudents] = useState(null);
+const [search, setSearch] = useState("");
+const [selectedCollege, setSelectedCollege] = useState("");
+
+const colleges = Array.from(
+  new Map(
+    (students || [])
+      .filter(
+        (student) =>
+          student.college_id &&
+          student.college_name
+      )
+      .map((student) => [
+        student.college_id,
+        {
+          id: student.college_id,
+          name: student.college_name,
+          code: student.college_code,
+        },
+      ])
+  ).values()
+);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -28,14 +48,22 @@ export function AdminStudents() {
     fetchStudents();
   }, []);
 
-  const filteredStudents =
+const filteredStudents =
   students?.filter((student) => {
     const searchValue = search.trim().toLowerCase();
 
-    return (
+    const matchesSearch =
+      !searchValue ||
       student.name?.toLowerCase().includes(searchValue) ||
-      student.email?.toLowerCase().includes(searchValue)
-    );
+      student.email?.toLowerCase().includes(searchValue) ||
+      student.student_code?.toLowerCase().includes(searchValue) ||
+      student.college_code?.toLowerCase().includes(searchValue);
+
+    const matchesCollege =
+      !selectedCollege ||
+      student.college_id === selectedCollege;
+
+    return matchesSearch && matchesCollege;
   }) || [];
 
   if (students === null) {
@@ -59,21 +87,71 @@ export function AdminStudents() {
           Manage and track every enrolled student.
         </p>
 
-        {/* Search Students */}
-{students.length > 0 && (
-  <div className="mt-6 relative max-w-md">
-    <Search
-      size={18}
-      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-    />
+{/* SEARCH + COLLEGE FILTER */}
 
-    <input
-      type="text"
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search by name or email..."
-      className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
-    />
+{students.length > 0 && (
+  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+
+    {/* SEARCH */}
+
+    <div className="relative w-full sm:max-w-xl">
+      <Search
+        size={18}
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+      />
+
+      <input
+        type="text"
+        value={search}
+        onChange={(e) =>
+          setSearch(e.target.value)
+        }
+        placeholder="Search by name, email, student code or college code..."
+        className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+      />
+    </div>
+
+    {/* COLLEGE FILTER */}
+
+    <div className="relative w-full sm:w-80">
+
+      <select
+        value={selectedCollege}
+        onChange={(e) =>
+          setSelectedCollege(e.target.value)
+        }
+        className="w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-10 text-sm text-white outline-none focus:border-cyan-400"
+      >
+
+        <option
+          value=""
+          className="bg-slate-900"
+        >
+          All Colleges
+        </option>
+
+        {colleges.map((college) => (
+          <option
+            key={college.id}
+            value={college.id}
+            className="bg-slate-900"
+          >
+            {college.name}
+            {college.code
+              ? ` (${college.code})`
+              : ""}
+          </option>
+        ))}
+
+      </select>
+
+      <ChevronDown
+        size={18}
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
+      />
+
+    </div>
+
   </div>
 )}
 
@@ -106,6 +184,28 @@ export function AdminStudents() {
             <p className="truncate text-sm text-slate-400">
               {student.email || "-"}
             </p>
+
+            {/* STUDENT ID */}
+
+{student.student_code && (
+  <p className="mt-1 truncate text-xs font-mono font-bold text-cyan-400">
+    Student Code: {student.student_code}
+  </p>
+)}
+
+{/* COLLEGE */}
+
+<p className="mt-2 truncate text-xs font-semibold text-cyan-400">
+  {student.college_name || "No College"}
+</p>
+
+{/* COLLEGE CODE */}
+
+{student.college_code && (
+  <p className="mt-1 text-[11px] font-medium text-slate-500">
+    College Code: {student.college_code}
+  </p>
+)}
           </div>
         </div>
 

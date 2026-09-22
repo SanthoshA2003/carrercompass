@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [collegeCoursesError, setCollegeCoursesError] = useState("");
 
   const [expandedPackage, setExpandedPackage] = useState(null);
+  const [enrollingCourse, setEnrollingCourse] = useState(null);
 
   /*
    * --------------------------------------------------
@@ -81,53 +82,39 @@ export default function Dashboard() {
    * --------------------------------------------------
    */
 
-  useEffect(() => {
-    const collegeConnected =
-      localStorage.getItem("college_connected") === "true";
+useEffect(() => {
+  const fetchCollegeCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      setCollegeCoursesError("");
 
-    const collegeCode = localStorage.getItem("college_code");
+      // Backend identifies the student's college
+      // from the authenticated student account.
+      const response = await api.studentCourses();
 
-    console.log("College Connected:", collegeConnected);
-    console.log("College Code:", collegeCode);
+      console.log("Student Courses Response:", response);
 
-    if (!collegeConnected || !collegeCode) {
+      setCollegeCourses(response);
+    } catch (error) {
+      console.error(
+        "Student courses error:",
+        error?.response?.data || error
+      );
+
+      setCollegeCoursesError(
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          "Unable to load college packages"
+      );
+
       setCollegeCourses(null);
+    } finally {
       setCoursesLoading(false);
-      return;
     }
+  };
 
-    const fetchCollegeCourses = async () => {
-      try {
-        setCoursesLoading(true);
-        setCollegeCoursesError("");
-
-        /*
-         * The API uses the logged-in user's token
-         * to identify the connected college.
-         *
-         * GET /api/students/courses
-         */
-
-        const response = await api.studentCourses();
-
-        console.log("Student Courses Response:", response);
-
-        setCollegeCourses(response);
-      } catch (error) {
-        console.error("Student courses error:", error?.response?.data || error);
-
-        setCollegeCoursesError(
-          error?.response?.data?.detail || "Unable to load college packages",
-        );
-
-        setCollegeCourses(null);
-      } finally {
-        setCoursesLoading(false);
-      }
-    };
-
-    fetchCollegeCourses();
-  }, []);
+  fetchCollegeCourses();
+}, []);
 
   /*
    * --------------------------------------------------
@@ -159,9 +146,13 @@ export default function Dashboard() {
 
   const certificates = data?.certificates || [];
 
-  const collegeConnected = localStorage.getItem("college_connected") === "true";
+  const collegeConnected = Boolean(
+  collegeCourses?.college_id ||
+  collegeCourses?.college_name
+);
 
-  const collegeCode = localStorage.getItem("college_code") || "";
+const collegeCode = collegeCourses?.college_code || "";
+
 
   /*
    * API Response:
@@ -188,16 +179,54 @@ export default function Dashboard() {
    * --------------------------------------------------
    */
 
-  const handleStartCourse = (course) => {
-    const courseId = course.course_id || course.id || course.courseId;
+const handleStartCourse = async (course) => {
+  const courseId =
+    course.course_id ||
+    course.id ||
+    course.courseId;
 
-    if (!courseId) {
-      console.error("Course ID not found:", course);
+  if (!courseId) {
+    console.error("Course ID not found:", course);
+    return;
+  }
+
+  try {
+    setEnrollingCourse(courseId);
+
+    console.log("Enrolling student in course:", courseId);
+
+    await api.enrollCourse(courseId);
+
+    console.log("Course enrolled successfully:", courseId);
+
+    // Open the course after successful enrollment
+    navigate(`/skillhub/journey/${courseId}`);
+  } catch (error) {
+    console.error(
+      "Course enrollment failed:",
+      error?.response?.data || error
+    );
+
+    const message =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      "Unable to enroll in this course.";
+
+    // If backend says already enrolled,
+    // still allow the student to open the course.
+    if (
+      error?.response?.status === 400 ||
+      error?.response?.status === 409
+    ) {
+      navigate(`/skillhub/journey/${courseId}`);
       return;
     }
 
-    navigate(`/skillhub/journey/${courseId}`);
-  };
+    alert(message);
+  } finally {
+    setEnrollingCourse(null);
+  }
+};
 
   return (
     <Shell>
@@ -570,35 +599,42 @@ export default function Dashboard() {
 
                             {/* Start Course */}
 
-                            <button
-                              type="button"
-                              disabled={!courseId}
-                              onClick={() =>
-                                handleStartCourse(course)
-                              }
-                              className="
-                                inline-flex
-                                shrink-0
-                                items-center
-                                justify-center
-                                gap-2
-                                rounded-full
-                                bg-white
-                                px-4
-                                py-2
-                                text-xs
-                                font-bold
-                                text-slate-900
-                                transition
-                                hover:scale-105
-                                disabled:cursor-not-allowed
-                                disabled:opacity-50
-                              "
-                            >
-                              Start Course
+                           <button
+  type="button"
+  disabled={
+    !courseId ||
+    enrollingCourse === courseId
+  }
+  onClick={() => handleStartCourse(course)}
+  className="
+    inline-flex
+    shrink-0
+    items-center
+    justify-center
+    gap-2
+    rounded-full
+    bg-white
+    px-4
+    py-2
+    text-xs
+    font-bold
+    text-slate-900
+    transition
+    hover:scale-105
+    disabled:cursor-not-allowed
+    disabled:opacity-50
+  "
+>
+  {enrollingCourse === courseId
+    ? "Enrolling..."
+    : "Start Course"}
 
-                              <ArrowRight className="h-4 w-4" />
-                            </button>
+  {enrollingCourse === courseId ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    <ArrowRight className="h-4 w-4" />
+  )}
+</button>
 
                           </div>
 
