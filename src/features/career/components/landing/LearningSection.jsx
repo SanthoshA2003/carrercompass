@@ -180,7 +180,7 @@
   <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
 
     {loading ? (
-      <p className="text-slate-500">Loading courses...</p>
+      <p className="text-slate-500">Login to View Courses.</p>
     ) : filteredCourses.length === 0 ? (
       <p className="text-slate-500">
         No courses available in this category.
