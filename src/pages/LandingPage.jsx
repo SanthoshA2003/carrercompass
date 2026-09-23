@@ -28,15 +28,15 @@ export default function Landing() {
         <Hero />
         <ProblemSection />
         <CareerElevator />
-        <TransformationTimeline />
-        <CareerPersonas />
+        <WhyMyMentor />
+        {/* <TransformationTimeline /> */}
+        {/* <CareerPersonas /> */}
         <CareerGraph />
         <CareerReadiness />
         <LearningSection />
         <ProjectsSection />
         <CareerInspirations />
         <SuccessStories />
-        <WhyMyMentor />
         <PlatformAudience />
         <CareerInsights />
         <MentorBooking />
