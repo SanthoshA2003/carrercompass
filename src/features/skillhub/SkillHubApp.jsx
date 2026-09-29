@@ -11,12 +11,14 @@ import Login from "@/features/skillhub/pages/Login";
 import Dashboard from "@/features/skillhub/pages/Dashboard";
 import Journey from "@/features/skillhub/pages/Journey";
 import Workspace from "@/features/skillhub/pages/Workspace";
+import SkillAssessment from "@/features/skillhub/pages/SkillAssessment";
 
 import AdminDashboard from "@/features/skillhub/pages/AdminDashboard";
 import AdminBuilder from "@/features/skillhub/pages/AdminBuilder";
 import AdminCourses from "@/features/skillhub/pages/AdminCourses";
 import AdminCourseLevels from "@/features/skillhub/pages/AdminCourseLevels";
 import CollegeManagement from "@/features/skillhub/pages/CollegeManagement";
+import AdminSkillAssessment from "@/features/skillhub/pages/AdminSkillAssessment";
 import StudentImport from "./pages/StudentImport";
 import {
   AdminStudents,
@@ -123,6 +125,15 @@ export default function SkillHubApp() {
           }
         />
 
+        <Route
+  path="skill-assessment"
+  element={
+    <Guard>
+      <SkillAssessment />
+    </Guard>
+  }
+/>
+
         {/* ==============================
             CERTIFICATES
         ============================== */}
@@ -175,6 +186,19 @@ export default function SkillHubApp() {
           }
         />
 
+       {/* ==============================
+    ADMIN SKILL ASSESSMENT
+============================== */}
+
+<Route
+  path="admin/skill-assessment"
+  element={
+    <Guard admin>
+      <AdminSkillAssessment />
+    </Guard>
+  }
+/>
+
         {/* ==============================
             ADMIN COURSE LEVELS
         ============================== */}
@@ -220,6 +244,19 @@ export default function SkillHubApp() {
             </Guard>
           }
         />
+
+        {/* ==============================
+    ADMIN VIEW STUDENT DASHBOARD
+============================== */}
+
+<Route
+  path="admin/students/:studentId/dashboard"
+  element={
+    <Guard admin>
+      <Dashboard />
+    </Guard>
+  }
+/>
 
         {/* colleges */}
 

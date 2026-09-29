@@ -618,6 +618,11 @@ studentCourses: async () => {
       .get("/dashboard/student/skillhub")
       .then((r) => r.data),
 
+      studentSkillHubDashboardById: (studentId) =>
+  client
+    .get(`/dashboard/student/skillhub/${studentId}`)
+    .then((r) => r.data),
+
   getMyResumes: async () => {
     const response = await client.get(
       "/files/me/resumes"
@@ -672,6 +677,25 @@ studentCourses: async () => {
     client
       .get("/users/students")
       .then((r) => r.data),
+
+      introductionMcqSubmit: (body) =>
+  client
+    .post("/introduction-mcqs/submit", body)
+    .then((r) => r.data),
+
+      // ==================================================
+// ADMIN - STUDENT DASHBOARD
+// ==================================================
+
+studentSkillHubDashboardById: (studentId) =>
+  client
+    .get(`/dashboard/student/skillhub/${studentId}`)
+    .then((r) => r.data),
+
+adminStudentCourses: (studentId) =>
+  client
+    .get(`/admin/students/${studentId}/courses`)
+    .then((r) => r.data),
 
   // ==================================================
   // STUDENT IMPORT

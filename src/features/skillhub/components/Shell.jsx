@@ -16,7 +16,8 @@ import {
   ArrowLeft,
     GraduationCap,
   Building2,
-  
+  Code2,
+Brain,
 
 } from "lucide-react";
 
@@ -48,12 +49,19 @@ const adminNav = [
     icon: BookOpen,
   },
 
+  {
+  to: "/skillhub/admin/skill-assessment",
+  label: "Skill Assessment",
+  icon: Brain,
+},
+
   // NEW
   {
     to: "/skillhub/admin/college-packages",
     label: "College Packages",
     icon: GraduationCap,
   },
+
 
   {
     to: "/skillhub/admin/students",
@@ -142,8 +150,14 @@ export default function Shell({
         : "#",
       label: "My Journey",
       icon: Map,
-      disabled: !courseId,
+      // disabled: !courseId,
     },
+
+    {
+  to: "/skillhub/skill-assessment",
+  label: "Skill Assessment",
+  icon: Brain,
+},  
 
     {
       to: "/skillhub/certificates",
@@ -175,29 +189,33 @@ export default function Shell({
   ======================================================= */
 
   const handleHome = () => {
-    // ADMIN
-    if (user?.role === "admin") {
-      logout();
-      mainLogout();
+  // Logout and go to main website
+  if (user?.role === "admin") {
+    logout();
+    mainLogout();
 
-      window.location.href = "/";
-      return;
-    }
+    window.location.replace("/");
+    return;
+  }
 
-    // STUDENT
-    nav("/");
-  };
+  // Student
+  nav("/");
+};
 
   /* =======================================================
      LOGOUT
   ======================================================= */
 
   const handleLogout = () => {
-    logout();
-    mainLogout();
+  // Logout from SkillHub
+  logout();
 
-    window.location.href = "/";
-  };
+  // Logout from main website
+  mainLogout();
+
+  // Directly go to main website
+  window.location.replace("/");
+};
 
   /* =======================================================
      UI

@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2, Award, Search, ChevronDown } from "lucide-react";
 import Shell from "@/features/skillhub/components/Shell";
 import { api } from "@/services/api";
 
 export function AdminStudents() {
+  const navigate = useNavigate();
+
  const [students, setStudents] = useState(null);
 const [search, setSearch] = useState("");
 const [selectedCollege, setSelectedCollege] = useState("");
+
 
 const colleges = Array.from(
   new Map(
@@ -166,10 +170,13 @@ const filteredStudents =
 ) : (
   <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
     {filteredStudents.map((student) => (
-      <div
-        key={student.id}
-        className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 transition hover:border-slate-600"
-      >
+     <div
+  key={student.id}
+ onClick={() =>
+  navigate(`/skillhub/admin/students/${student.id}/dashboard`)
+}
+  className="cursor-pointer rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 transition hover:border-cyan-400/40 hover:bg-slate-900"
+>
         {/* Student Details */}
         <div className="flex items-center gap-4">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-lg font-bold text-white">

@@ -725,6 +725,10 @@ export default function Workspace() {
 
   const [activeCp, setActiveCp] = useState(null);
 
+  const [mcqAnswers, setMcqAnswers] = useState({});
+const [mcqSubmitting, setMcqSubmitting] = useState(false);
+const [mcqResult, setMcqResult] = useState(null); 
+
   const [language, setLanguage] = useState("python");
 
   const [codeByCp, setCodeByCp] = useState({});
@@ -1896,23 +1900,32 @@ const submit = async () => {
   
 const theory = level.theory || {};
 
-const learningObjectives = Array.isArray(theory.learningObjectives)
-  ? theory.learningObjectives
-  : theory.learningObjectives
-    ? [theory.learningObjectives]
+const mcqs = theory.introduction_mcqs || [];
+
+const learningObjectives = Array.isArray(
+  theory.learning_objectives
+)
+  ? theory.learning_objectives
+  : theory.learning_objectives
+    ? [theory.learning_objectives]
     : [];
 
-const bestPractices = Array.isArray(theory.bestPractices)
-  ? theory.bestPractices
-  : theory.bestPractices
-    ? [theory.bestPractices]
+const bestPractices = Array.isArray(
+  theory.best_practices
+)
+  ? theory.best_practices
+  : theory.best_practices
+    ? [theory.best_practices]
     : [];
 
-const commonMistakes = Array.isArray(theory.commonMistakes)
-  ? theory.commonMistakes
-  : theory.commonMistakes
-    ? [theory.commonMistakes]
+const commonMistakes = Array.isArray(
+  theory.common_mistakes
+)
+  ? theory.common_mistakes
+  : theory.common_mistakes
+    ? [theory.common_mistakes]
     : [];
+
   /* =======================================================
      VIDEO URL
   ======================================================= */
@@ -1931,6 +1944,113 @@ const commonMistakes = Array.isArray(theory.commonMistakes)
       ""
       }`;
 
+      const hasVideo = Boolean(
+  level.video?.url &&
+  level.video.url.trim()
+);
+
+
+const submitMcqs = async () => {
+  if (!mcqs.length) {
+    toast.error("No questions available for this level.");
+    return;
+  }
+
+  const unanswered = mcqs.some(
+    (_, index) => !mcqAnswers[index]
+  );
+
+  if (unanswered) {
+    toast.error("Please answer all questions.");
+    return;
+  }
+
+  setMcqSubmitting(true);
+
+  try {
+    let correctCount = 0;
+
+    for (let index = 0; index < mcqs.length; index++) {
+      const selectedOption = mcqAnswers[index];
+
+      const response = await api.introductionMcqSubmit({
+        level_id: levelId,
+        question_index: index,
+        selected_option: selectedOption,
+      });
+
+      console.log(
+        `MCQ ${index + 1} response:`,
+        response
+      );
+
+      const isCorrect =
+        response?.correct === true ||
+        response?.is_correct === true ||
+        response?.correct_option === selectedOption;
+
+      if (isCorrect) {
+        correctCount++;
+      }
+    }
+
+    const passed = correctCount === mcqs.length;
+
+    setMcqResult({
+      correct: correctCount,
+      total: mcqs.length,
+      passed,
+    });
+
+    if (!passed) {
+      toast.error(
+        `${correctCount}/${mcqs.length} correct. Try again!`
+      );
+      return;
+    }
+
+    const userId = getStoredUserId();
+
+    const currentCourseId =
+      courseId ||
+      level?.courseId ||
+      level?.course_id ||
+      level?.course?.id ||
+      localStorage.getItem("courseId") ||
+      localStorage.getItem("course_id");
+
+    await saveProgressRecord({
+      userId,
+      courseId: currentCourseId,
+      levelId,
+      checkpointsPassed: [],
+      videoCompleted: false,
+      completed: true,
+    });
+
+    toast.success(
+      `All questions correct! +${level.xp || 0} XP`
+    );
+
+    setCompletedModal(true);
+    refresh();
+
+  } catch (error) {
+    console.error(
+      "MCQ submission failed:",
+      error
+    );
+
+    toast.error(
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to submit MCQ"
+    );
+  } finally {
+    setMcqSubmitting(false);
+  }
+};
   /* =======================================================
      RENDER
   ======================================================= */
@@ -2007,366 +2127,391 @@ const commonMistakes = Array.isArray(theory.commonMistakes)
 
       <div className="grid gap-4 p-4 lg:grid-cols-2">
 
-        {/* ==================================================
-            LEFT
-        ================================================== */}
+       {/* ==================================================
+    LEFT
+================================================== */}
 
-        <div className="space-y-4">
+<div className="space-y-4">
 
-          {/* VIDEO */}
+  {/* ==================================================
+      VIDEO / INTRODUCTION
+  ================================================== */}
 
-          <div className="overflow-hidden rounded-2xl border border-white/5 bg-black">
+  {hasVideo ? (
 
-            <div className="relative">
+    <div className="overflow-hidden rounded-2xl border border-white/5 bg-black">
 
-            <video
-  ref={videoRef}
-  src={videoUrl}
-  poster={level.video?.thumbnail}
-  controls
-  onTimeUpdate={onTimeUpdate}
-  onLoadedMetadata={(event) =>
-    setDuration(event.target.duration || 0)
-  }
-  onSeeking={onTimeUpdate}
-  onPlay={(event) => {
-    setIsPlaying(true);
+      <div className="relative">
 
-    if (activeCp) {
-      event.target.pause();
-    }
-  }}
-  onPause={() => {
-    setIsPlaying(false);
-  }}
-  onEnded={(event) => {
-    setIsPlaying(false);
-    onEnded(event);
-  }}
-  onError={() => setVideoError(true)}
-  className="aspect-video w-full bg-black"
-  data-testid="lesson-video"
-/>
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          poster={level.video?.thumbnail}
+          controls
+          onTimeUpdate={onTimeUpdate}
+          onLoadedMetadata={(event) =>
+            setDuration(event.target.duration || 0)
+          }
+          onSeeking={onTimeUpdate}
+          onPlay={(event) => {
+            setIsPlaying(true);
 
-              {/* VIDEO ERROR */}
+            if (activeCp) {
+              event.target.pause();
+            }
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+          }}
+          onEnded={(event) => {
+            setIsPlaying(false);
+            onEnded(event);
+          }}
+          onError={() => setVideoError(true)}
+          className="aspect-video w-full bg-black"
+          data-testid="lesson-video"
+        />
 
-              <AnimatePresence>
-                {videoError &&
-                  !activeCp && (
-                    <motion.div
-                      initial={{
-                        opacity: 0,
-                      }}
-                      animate={{
-                        opacity: 1,
-                      }}
-                      exit={{
-                        opacity: 0,
-                      }}
-                      className="absolute inset-0 grid place-items-center bg-slate-900/95 p-6 text-center"
-                    >
-                      <div>
+        {/* VIDEO ERROR */}
 
-                        <p className="text-sm text-slate-300">
-                          Video couldn't
-                          load right now.
-                        </p>
+        <AnimatePresence>
+          {videoError && !activeCp && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 grid place-items-center bg-slate-900/95 p-6 text-center"
+            >
+              <div>
 
-                        {firstUnpassed ? (
-                          <button
-                            onClick={() =>
-                              openCheckpoint(
-                                firstUnpassed
-                              )
-                            }
-                            data-testid="video-fallback-open-cp"
-                            className="mt-4 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white"
-                          >
-                            Start
-                            Checkpoint{" "}
-                            {
-                              firstUnpassed.order
-                            }
-                          </button>
-                        ) : !videoDone ? (
-                          <button
-                            onClick={
-                              finishVideoManually
-                            }
-                            data-testid="video-fallback-complete"
-                            className="mt-4 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white"
-                          >
-                            Complete
-                            Level
-                          </button>
-                        ) : (
-                          <p className="mt-3 text-emerald-400">
-                            Level
-                            complete!
-                          </p>
-                        )}
+                <p className="text-sm text-slate-300">
+                  Video couldn't load right now.
+                </p>
 
-                      </div>
-                    </motion.div>
-                  )}
-              </AnimatePresence>
+                {firstUnpassed ? (
 
-             {/* CHECKPOINT LOCK */}
-<AnimatePresence>
-  {activeCp && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      className="absolute inset-0 z-20 grid place-items-center bg-slate-950/85 backdrop-blur-sm"
-    >
-      <div className="text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-white shadow-lg">
-          <Lock className="h-8 w-8" />
-        </span>
+                  <button
+                    onClick={() =>
+                      openCheckpoint(firstUnpassed)
+                    }
+                    className="mt-4 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white"
+                  >
+                    Start Checkpoint{" "}
+                    {firstUnpassed.order}
+                  </button>
 
-        <p className="mt-5 text-2xl font-bold text-white">
-          Checkpoint{" "}
-          {activeCp.checkpoint_order ??
-            activeCp.order ??
-            1}
-        </p>
+                ) : !videoDone ? (
 
-        <p className="mt-2 text-base text-slate-300">
-          Solve the challenge on the right to continue →
-        </p>
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
+                  <button
+                    onClick={finishVideoManually}
+                    className="mt-4 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white"
+                  >
+                    Complete Level
+                  </button>
 
-            </div>
+                ) : (
 
-            {/* START / PAUSE + SAVE PROGRESS */}
+                  <p className="mt-3 text-emerald-400">
+                    Level complete!
+                  </p>
 
-            {/* <button
-  onClick={toggleVideoPlayback}
-  disabled={
-    busy ||
-    !(
-      courseId ||
-      level?.courseId ||
-      level?.course_id ||
-      level?.course?.id
-    ) ||
-    !levelId
-  }
-  data-testid="pause-progress-btn"
-  className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white transition-transform hover:scale-105 disabled:opacity-60"
->
-  {busy ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : isPlaying ? (
-    <>
-      <Pause className="h-4 w-4" />
-      Pause
-    </>
-  ) : (
-    <>
-      <Play className="h-4 w-4" />
-      Start
-    </>
-  )}
-</button> */}
-
-            {/* VIDEO TIMELINE */}
-
-            <div className="relative h-8 bg-slate-900 px-3">
-
-              <div className="relative top-3 h-1.5 w-full rounded-full bg-white/10">
-
-                <div
-                  className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
-                  style={{
-                    width: `${duration
-                        ? Math.min(
-                          100,
-                          (currentTime /
-                            duration) *
-                          100
-                        )
-                        : 0
-                      }%`,
-                  }}
-                />
-
-                {checkpoints.map(
-                  (checkpoint) => (
-                    <span
-                      key={
-                        checkpoint.id
-                      }
-                      title={`${fmt(
-                        checkpoint.atSeconds
-                      )} · ${checkpoint.title
-                        }`}
-                      className={`
-                        absolute -top-1 grid h-3.5 w-3.5
-                        -translate-x-1/2 place-items-center
-                        rounded-full border-2 border-slate-900
-                        ${passed.has(
-                        checkpoint.id
-                      )
-                          ? "bg-emerald-400"
-                          : "bg-amber-400"
-                        }
-                      `}
-                      style={{
-                        left: `${duration
-                            ? Math.min(
-                              100,
-                              (Number(
-                                checkpoint.atSeconds ||
-                                0
-                              ) /
-                                duration) *
-                              100
-                            )
-                            : 0
-                          }%`,
-                      }}
-                    />
-                  )
                 )}
 
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            </div>
 
-          </div>
+        {/* CHECKPOINT LOCK */}
 
-          {/* THEORY */}
+        <AnimatePresence>
+          {activeCp && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-20 grid place-items-center bg-slate-950/85 backdrop-blur-sm"
+            >
+              <div className="text-center">
 
-          <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-6">
+                <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-white shadow-lg">
+                  <Lock className="h-8 w-8" />
+                </span>
 
-            <h3 className="flex items-center gap-2 text-lg font-bold text-white">
-              <BookOpen className="h-5 w-5 text-cyan-400" />
-
-              Theory & Concepts
-            </h3>
-
-            <div className="mt-4 space-y-5 text-sm leading-relaxed">
-
-              {/* OBJECTIVES */}
-
-              <div>
-
-                <p className="mb-2 font-semibold text-slate-300">
-                  Learning Objectives
+                <p className="mt-5 text-2xl font-bold text-white">
+                  Checkpoint{" "}
+                  {activeCp.checkpoint_order ??
+                    activeCp.order ??
+                    1}
                 </p>
 
-                <ul className="space-y-1.5">
-
-                  {learningObjectives.map((objective, index) => (
-                     <li
-  key={index}
-  className="flex items-start gap-2 text-slate-400"
->
-  <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
-  {objective}
-</li>
-))}
-
-                </ul>
+                <p className="mt-2 text-base text-slate-300">
+                  Solve the challenge on the right to continue →
+                </p>
 
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              {/* EXPLANATION */}
+      </div>
 
-              {theory.explanation && (
-                <p className="text-slate-400">
-                  {
-                    theory.explanation
-                  }
-                </p>
-              )}
 
-              {/* CODE EXAMPLES */}
+      {/* VIDEO TIMELINE */}
 
-              {(
-                theory.codeExamples ||
-                []
-              ).map(
-                (example) => (
-                  <div
-                    key={
-                      example.title
-                    }
-                  >
+      <div className="relative h-8 bg-slate-900 px-3">
 
-                    <p className="mb-1.5 font-semibold text-slate-300">
-                      {
-                        example.title
-                      }
-                    </p>
+        <div className="relative top-3 h-1.5 w-full rounded-full bg-white/10">
 
-                    <pre className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950 p-3 text-xs text-cyan-200">
-                      <code>
-                        {
-                          example.code
-                        }
-                      </code>
-                    </pre>
+          <div
+            className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
+            style={{
+              width: `${
+                duration
+                  ? Math.min(
+                      100,
+                      (currentTime / duration) * 100
+                    )
+                  : 0
+              }%`,
+            }}
+          />
 
-                  </div>
+          {checkpoints.map((checkpoint) => (
+            <span
+              key={checkpoint.id}
+              title={`${fmt(
+                checkpoint.atSeconds
+              )} · ${checkpoint.title}`}
+              className={`
+                absolute -top-1 grid h-3.5 w-3.5
+                -translate-x-1/2 place-items-center
+                rounded-full border-2 border-slate-900
+                ${
+                  passed.has(checkpoint.id)
+                    ? "bg-emerald-400"
+                    : "bg-amber-400"
+                }
+              `}
+              style={{
+                left: `${
+                  duration
+                    ? Math.min(
+                        100,
+                        (Number(
+                          checkpoint.atSeconds || 0
+                        ) / duration) * 100
+                      )
+                    : 0
+                }%`,
+              }}
+            />
+          ))}
+
+        </div>
+
+      </div>
+
+    </div>
+
+  ) : (
+
+    /* ==================================================
+       NO VIDEO - INTRODUCTION ONLY
+    ================================================== */
+
+    <div className="rounded-2xl border border-cyan-400/10 bg-gradient-to-br from-cyan-400/[0.06] to-violet-500/[0.06] p-6">
+
+      <div className="flex items-center gap-3">
+
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-400/10">
+          <BookOpen className="h-6 w-6 text-cyan-400" />
+        </div>
+
+        <div>
+
+          <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+            Introduction
+          </p>
+
+          <h2 className="mt-1 text-xl font-black text-white">
+            {level.title}
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p className="mt-5 text-sm leading-7 text-slate-300">
+        {level.description ||
+          "Read the concepts carefully before answering the questions."}
+      </p>
+
+    </div>
+
+  )}
+
+
+  {/* ==================================================
+      THEORY & CONCEPTS
+  ================================================== */}
+
+  <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-6">
+
+    <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+
+      <BookOpen className="h-5 w-5 text-cyan-400" />
+
+      Theory & Concepts
+
+    </h3>
+
+
+    <div className="mt-4 space-y-5 text-sm leading-relaxed">
+
+
+      {/* LEARNING OBJECTIVES */}
+
+      {learningObjectives.length > 0 && (
+        <div>
+
+          <p className="mb-2 font-semibold text-slate-300">
+            Learning Objectives
+          </p>
+
+          <ul className="space-y-1.5">
+
+            {learningObjectives.map(
+              (objective, index) => (
+                <li
+                  key={index}
+                  className="flex items-start gap-2 text-slate-400"
+                >
+
+                  <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
+
+                  <span>
+                    {objective}
+                  </span>
+
+                </li>
+              )
+            )}
+
+          </ul>
+
+        </div>
+      )}
+
+
+      {/* EXPLANATION */}
+
+      {theory.explanation && (
+        <p className="whitespace-pre-line text-slate-400">
+          {theory.explanation}
+        </p>
+      )}
+
+
+      {/* CODE EXAMPLES */}
+
+      {(
+        theory.codeExamples ||
+        theory.code_examples ||
+        []
+      ).map((example, index) => (
+
+        <div key={example.title || index}>
+
+          {example.title && (
+            <p className="mb-1.5 font-semibold text-slate-300">
+              {example.title}
+            </p>
+          )}
+
+          {example.code && (
+            <pre className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950 p-3 text-xs text-cyan-200">
+              <code>
+                {example.code}
+              </code>
+            </pre>
+          )}
+
+        </div>
+
+      ))}
+
+
+      {/* BEST PRACTICES + COMMON MISTAKES */}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+
+
+        {/* BEST PRACTICES */}
+
+        {bestPractices.length > 0 && (
+          <div>
+
+            <p className="mb-2 flex items-center gap-1.5 font-semibold text-emerald-400">
+
+              <ListChecks className="h-4 w-4" />
+
+              Best Practices
+
+            </p>
+
+            <ul className="space-y-1 text-slate-400">
+
+              {bestPractices.map(
+                (practice, index) => (
+                  <li key={index}>
+                    • {practice}
+                  </li>
                 )
               )}
 
-             {/* BEST PRACTICES + MISTAKES */}
+            </ul>
 
-<div className="grid gap-4 sm:grid-cols-2">
+          </div>
+        )}
 
-  <div>
 
-    <p className="mb-2 flex items-center gap-1.5 font-semibold text-emerald-400">
-      <ListChecks className="h-4 w-4" />
-      Best Practices
-    </p>
+        {/* COMMON MISTAKES */}
 
-    <ul className="space-y-1 text-slate-400">
+        {commonMistakes.length > 0 && (
+          <div>
 
-      {bestPractices.map((practice, index) => (
-        <li key={index}>
-          • {practice}
-        </li>
-      ))}
+            <p className="mb-2 flex items-center gap-1.5 font-semibold text-amber-400">
 
-    </ul>
+              <AlertTriangle className="h-4 w-4" />
 
-  </div>
+              Common Mistakes
 
-  <div>
+            </p>
 
-    <p className="mb-2 flex items-center gap-1.5 font-semibold text-amber-400">
-      <AlertTriangle className="h-4 w-4" />
-      Common Mistakes
-    </p>
+            <ul className="space-y-1 text-slate-400">
 
-    <ul className="space-y-1 text-slate-400">
+              {commonMistakes.map(
+                (mistake, index) => (
+                  <li key={index}>
+                    • {mistake}
+                  </li>
+                )
+              )}
 
-      {commonMistakes.map((mistake, index) => (
-        <li key={index}>
-          • {mistake}
-        </li>
-      ))}
+            </ul>
 
-    </ul>
+          </div>
+        )}
+
+      </div>
+
+    </div>
 
   </div>
 
 </div>
-
-            </div>
-
-          </div>
-
-        </div>
 
         {/* ==================================================
             RIGHT
@@ -2374,150 +2519,488 @@ const commonMistakes = Array.isArray(theory.commonMistakes)
 
         <div className="space-y-4">
 
-          {/* CHALLENGE */}
+   {hasVideo ? (
+    <>
+      {/* ==================================================
+          CHALLENGE
+      ================================================== */}
 
-          <div
-            className={`
-              rounded-2xl border p-6 transition-colors
-              ${activeCp
-                ? "border-cyan-400/40 bg-cyan-400/[0.06]"
-                : "border-white/5 bg-white/[0.03]"
+      <div
+        className={`
+          rounded-2xl border p-6 transition-colors
+          ${
+            activeCp
+              ? "border-cyan-400/40 bg-cyan-400/[0.06]"
+              : "border-white/5 bg-white/[0.03]"
+          }
+        `}
+        data-testid="challenge-panel"
+      >
+
+        {checkpointLoading ? (
+          <div className="flex min-h-36 flex-col items-center justify-center gap-3 py-8 text-center">
+
+            <Loader2 className="h-7 w-7 animate-spin text-cyan-400" />
+
+            <p className="text-sm font-semibold text-white">
+              Loading checkpoints...
+            </p>
+
+            <p className="text-xs text-slate-500">
+              Fetching challenges for this level.
+            </p>
+
+          </div>
+        ) : activeCp ? (
+
+          <>
+            <div className="flex items-center justify-between">
+
+              <span className="rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-3 py-1 text-xs font-bold text-white">
+                Checkpoint{" "}
+                {activeCp.order}{" "}
+                ·{" "}
+                {activeCp.difficulty}
+              </span>
+
+              <span className="flex items-center gap-1 text-xs font-bold text-cyan-400">
+
+                <Zap className="h-3.5 w-3.5 fill-current" />
+
+                {activeCp.xp} XP
+
+              </span>
+
+            </div>
+
+            <h3 className="mt-3 text-lg font-bold text-white">
+              {activeCp.title}
+            </h3>
+
+            <p className="mt-1 text-sm italic text-slate-400">
+              {activeCp.scenario}
+            </p>
+
+            <p className="mt-3 whitespace-pre-line text-sm text-slate-300">
+              {activeCp.problemStatement}
+            </p>
+
+            {activeCp.hints?.length > 0 && (
+              <details className="mt-3">
+
+                <summary className="cursor-pointer text-xs font-semibold text-amber-400">
+
+                  <Lightbulb className="mr-1 inline h-3.5 w-3.5" />
+
+                  Hints
+
+                </summary>
+
+                <ul className="mt-2 space-y-1 text-xs text-slate-400">
+
+                  {activeCp.hints.map((hint) => (
+                    <li key={hint}>
+                      • {hint}
+                    </li>
+                  ))}
+
+                </ul>
+
+              </details>
+            )}
+
+          </>
+
+        ) : (
+
+          <div className="py-4 text-center">
+
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/5 text-slate-400">
+
+              <Play className="h-6 w-6" />
+
+            </span>
+
+            <p className="mt-3 font-semibold text-white">
+
+              {allPassed
+                ? "All challenges solved 🎉"
+                : "Watch the video to unlock challenges"}
+
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+
+              {allPassed
+                ? videoDone
+                  ? "Level complete!"
+                  : "Finish the video to complete this level."
+                : `A coding challenge appears at each checkpoint (${checkpoints
+                    .map((checkpoint) =>
+                      fmt(checkpoint.atSeconds)
+                    )
+                    .join(", ")}). Use the editor below to experiment.`}
+
+            </p>
+
+          </div>
+
+        )}
+
+      </div>
+
+
+      {/* ==================================================
+          CODING WORKSPACE
+      ================================================== */}
+
+      <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-900">
+
+        {/* HEADER */}
+
+        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
+
+          <div className="flex items-center gap-2">
+
+            <Terminal className="h-4 w-4 text-cyan-400" />
+
+            <select
+              value={language}
+              onChange={(event) =>
+                setLanguage(event.target.value)
               }
-            `}
-            data-testid="challenge-panel"
-          >
+              data-testid="language-select"
+              className="rounded-lg border border-white/10 bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white outline-none"
+            >
 
-            {checkpointLoading ? (
-              <div className="flex min-h-36 flex-col items-center justify-center gap-3 py-8 text-center">
-                <Loader2 className="h-7 w-7 animate-spin text-cyan-400" />
-                <p className="text-sm font-semibold text-white">
-                  Loading checkpoints...
-                </p>
-                <p className="text-xs text-slate-500">
-                  Fetching challenges for this level.
-                </p>
-              </div>
-            ) : activeCp ? (
-              <>
+              {LANGS.map((lang) => (
+                <option
+                  key={lang.id}
+                  value={lang.id}
+                  disabled={lang.id === "java"}
+                >
+                  {lang.label}
+                </option>
+              ))}
 
-                <div className="flex items-center justify-between">
+            </select>
 
-                  <span className="rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-3 py-1 text-xs font-bold text-white">
-                    Checkpoint{" "}
-                    {
-                      activeCp.order
-                    }{" "}
-                    ·{" "}
-                    {
-                      activeCp.difficulty
+          </div>
+
+
+          {/* RUN / SUBMIT */}
+
+          <div className="flex items-center gap-2">
+
+            <button
+              onClick={runCode}
+              disabled={running}
+              data-testid="run-btn"
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-white/10 disabled:opacity-60"
+            >
+
+              {running ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+
+              Run
+
+            </button>
+
+
+            <button
+              onClick={submit}
+              disabled={
+                submitting ||
+                !activeCp
+              }
+              data-testid="submit-btn"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white transition-transform hover:scale-105 disabled:opacity-50"
+            >
+
+              {submitting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+
+              Submit
+
+            </button>
+
+          </div>
+
+        </div>
+
+
+        {/* CODE EDITOR */}
+
+        <div className="h-[300px]">
+
+          <CodeEditor
+            language={language}
+            value={activeCode}
+            onChange={setActiveCode}
+          />
+
+        </div>
+
+
+        {/* CONSOLE */}
+
+        <div className="border-t border-white/5">
+
+          <div className="flex items-center gap-1 px-3 pt-2">
+
+            {[
+              "tests",
+              "output",
+            ].map((type) => (
+
+              <button
+                key={type}
+                onClick={() =>
+                  setTab(type)
+                }
+                className={`
+                  rounded-t-lg px-3 py-1.5
+                  text-xs font-semibold capitalize
+                  ${
+                    tab === type
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-400"
+                  }
+                `}
+              >
+
+                {type === "tests"
+                  ? "Test Cases"
+                  : "Output"}
+
+              </button>
+
+            ))}
+
+          </div>
+
+
+          <div className="max-h-52 overflow-auto bg-slate-950 p-4 text-xs">
+
+            {tab === "output" ? (
+
+              <div>
+
+                <div className="mb-2">
+
+                  <label className="text-slate-500">
+                    Custom Input (stdin)
+                  </label>
+
+                  <textarea
+                    value={stdin}
+                    onChange={(event) =>
+                      setStdin(event.target.value)
                     }
-                  </span>
-
-                  <span className="flex items-center gap-1 text-xs font-bold text-cyan-400">
-
-                    <Zap className="h-3.5 w-3.5 fill-current" />
-
-                    {
-                      activeCp.xp
-                    }{" "}
-                    XP
-
-                  </span>
+                    rows={2}
+                    placeholder="Type input for Run..."
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 p-2 font-mono text-slate-200 outline-none"
+                  />
 
                 </div>
 
-                <h3 className="mt-3 text-lg font-bold text-white">
-                  {
-                    activeCp.title
-                  }
-                </h3>
 
-                <p className="mt-1 text-sm italic text-slate-400">
-                  {
-                    activeCp.scenario
-                  }
-                </p>
+                {runOut ? (
 
-                <p className="mt-3 whitespace-pre-line text-sm text-slate-300">
-                  {
-                    activeCp.problemStatement
-                  }
-                </p>
+                  <>
 
-                {activeCp.hints
-                  ?.length >
-                  0 && (
-                    <details className="mt-3">
+                    {runOut.stdout && (
+                      <pre className="whitespace-pre-wrap text-emerald-300">
+                        {runOut.stdout}
+                      </pre>
+                    )}
 
-                      <summary className="cursor-pointer text-xs font-semibold text-amber-400">
+                    {runOut.stderr && (
+                      <pre className="whitespace-pre-wrap text-rose-400">
+                        {runOut.stderr}
+                      </pre>
+                    )}
 
-                        <Lightbulb className="mr-1 inline h-3.5 w-3.5" />
+                    <p className="mt-1 text-slate-500">
+                      Exit {runOut.exit_code} · {runOut.time_ms} ms
+                    </p>
 
-                        Hints
+                  </>
 
-                      </summary>
+                ) : (
 
-                      <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                  <p className="text-slate-500">
+                    Press Run to execute your code.
+                  </p>
 
-                        {activeCp.hints.map(
-                          (hint) => (
-                            <li
-                              key={
-                                hint
-                              }
-                            >
-                              •{" "}
-                              {
-                                hint
-                              }
-                            </li>
-                          )
-                        )}
+                )}
 
-                      </ul>
+              </div>
 
-                    </details>
-                  )}
-
-              </>
             ) : (
 
-              <div className="py-4 text-center">
+              <div className="space-y-2">
 
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/5 text-slate-400">
+                {activeCp?.visibleTestCases?.map(
+                  (testCase, index) => {
 
-                  <Play className="h-6 w-6" />
+                    const result =
+                      results?.results?.find(
+                        (item) =>
+                          item.index === index
+                      );
 
-                </span>
+                    return (
 
-                <p className="mt-3 font-semibold text-white">
+                      <div
+                        key={index}
+                        className={`
+                          rounded-lg border p-2.5
+                          ${
+                            result
+                              ? result.passed
+                                ? "border-emerald-500/40 bg-emerald-500/5"
+                                : "border-rose-500/40 bg-rose-500/5"
+                              : "border-white/5"
+                          }
+                        `}
+                      >
 
-                  {allPassed
-                    ? "All challenges solved 🎉"
-                    : "Watch the video to unlock challenges"}
+                        <div className="flex items-center justify-between">
 
-                </p>
+                          <span className="font-semibold text-slate-300">
+                            Test {index + 1}
+                          </span>
 
-                <p className="mt-1 text-sm text-slate-400">
+                          {result &&
+                            (
+                              result.passed ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-rose-400" />
+                              )
+                            )}
 
-                  {allPassed
-                    ? videoDone
-                      ? "Level complete!"
-                      : "Finish the video to complete this level."
-                    : `A coding challenge appears at each checkpoint (${checkpoints
-                      .map(
-                        (
-                          checkpoint
-                        ) =>
-                          fmt(
-                            checkpoint.atSeconds
-                          )
+                        </div>
+
+
+                        <p className="mt-1 text-slate-500">
+
+                          Input:{" "}
+
+                          <span className="text-slate-300">
+                            {JSON.stringify(
+                              testCase.input
+                            )}
+                          </span>
+
+                        </p>
+
+
+                        <p className="text-slate-500">
+
+                          Expected:{" "}
+
+                          <span className="text-slate-300">
+                            {JSON.stringify(
+                              testCase.expectedOutput
+                            )}
+                          </span>
+
+                        </p>
+
+
+                        {result &&
+                          !result.passed &&
+                          result.actual !== undefined && (
+
+                            <p className="text-rose-400">
+
+                              Got:{" "}
+
+                              {JSON.stringify(
+                                result.actual
+                              )}
+
+                            </p>
+
+                          )}
+
+                      </div>
+
+                    );
+
+                  }
+                )}
+
+
+                {activeCp && (
+
+                  <p className="text-slate-500">
+
+                    +{" "}
+                    {activeCp.hiddenCount || 0}
+                    {" "}
+                    hidden test case(s) run on submit.
+
+                  </p>
+
+                )}
+
+
+                {results && (
+
+                  <div className="mt-1 flex flex-wrap gap-2">
+
+                    {(results.results || [])
+                      .filter(
+                        (result) =>
+                          result.hidden
                       )
-                      .join(
-                        ", "
-                      )}). Use the editor below to experiment.`}
+                      .map((result) => (
 
-                </p>
+                        <span
+                          key={result.index}
+                          className={`
+                            rounded-md px-2 py-0.5
+                            text-[11px] font-semibold
+                            ${
+                              result.passed
+                                ? "bg-emerald-500/15 text-emerald-300"
+                                : "bg-rose-500/15 text-rose-300"
+                            }
+                          `}
+                        >
+
+                          Hidden #{result.index + 1}{" "}
+                          {result.passed
+                            ? "✓"
+                            : "✗"}
+
+                        </span>
+
+                      ))}
+
+                  </div>
+
+                )}
+
+
+                {!activeCp && (
+
+                  <p className="text-slate-500">
+
+                    Test cases appear when a checkpoint challenge is active.
+
+                  </p>
+
+                )}
 
               </div>
 
@@ -2525,516 +3008,321 @@ const commonMistakes = Array.isArray(theory.commonMistakes)
 
           </div>
 
-          {/* CODING WORKSPACE */}
+        </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/5 bg-slate-900">
+      </div>
 
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
+    </>
+    ) : (
 
-              <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-cyan-400/10 bg-gradient-to-br from-cyan-400/[0.06] to-violet-500/[0.06] p-6">
 
-                <Terminal className="h-4 w-4 text-cyan-400" />
+      {/* ==================================================
+          MCQ WORKSPACE
+      ================================================== */}
 
-                <select
-                  value={
-                    language
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setLanguage(
-                      event.target
-                        .value
-                    )
-                  }
-                  data-testid="language-select"
-                  className="rounded-lg border border-white/10 bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white outline-none"
-                >
+      {/* MCQ HEADER */}
 
-                  {LANGS.map(
-                    (lang) => (
-                      <option
-                        key={
-                          lang.id
-                        }
-                        value={
-                          lang.id
-                        }
-                        disabled={
-                          lang.id ===
-                          "java"
-                        }
-                      >
-                        {
-                          lang.label
-                        }
-                      </option>
-                    )
-                  )}
+      <div className="flex items-center gap-3">
 
-                </select>
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-400/10">
 
-              </div>
+          <CheckCircle2 className="h-6 w-6 text-cyan-400" />
 
-              <div className="flex items-center gap-2">
+        </div>
 
-                <button
-                  onClick={
-                    runCode
-                  }
-                  disabled={
-                    running
-                  }
-                  data-testid="run-btn"
-                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-white/10 disabled:opacity-60"
-                >
+        <div>
 
-                  {running ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Play className="h-3.5 w-3.5" />
-                  )}
+          <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+            Introduction Quiz
+          </p>
 
-                  Run
-
-                </button>
-
-                <button
-                  onClick={
-                    submit
-                  }
-                  disabled={
-                    submitting ||
-                    !activeCp
-                  }
-                  data-testid="submit-btn"
-                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white transition-transform hover:scale-105 disabled:opacity-50"
-                >
-
-                  {submitting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  )}
-
-                  Submit
-
-                </button>
-
-              </div>
-
-            </div>
-
-            <div className="h-[300px]">
-
-              <CodeEditor
-                language={
-                  language
-                }
-                value={
-                  activeCode
-                }
-                onChange={
-                  setActiveCode
-                }
-              />
-
-            </div>
-
-            {/* CONSOLE */}
-
-            <div className="border-t border-white/5">
-
-              <div className="flex items-center gap-1 px-3 pt-2">
-
-                {[
-                  "tests",
-                  "output",
-                ].map(
-                  (type) => (
-                    <button
-                      key={
-                        type
-                      }
-                      onClick={() =>
-                        setTab(
-                          type
-                        )
-                      }
-                      className={`
-                        rounded-t-lg px-3 py-1.5
-                        text-xs font-semibold capitalize
-                        ${tab ===
-                          type
-                          ? "bg-slate-950 text-white"
-                          : "text-slate-400"
-                        }
-                      `}
-                    >
-                      {type ===
-                        "tests"
-                        ? "Test Cases"
-                        : "Output"}
-                    </button>
-                  )
-                )}
-
-              </div>
-
-              <div className="max-h-52 overflow-auto bg-slate-950 p-4 text-xs">
-
-                {tab ===
-                  "output" ? (
-
-                  <div>
-
-                    <div className="mb-2">
-
-                      <label className="text-slate-500">
-                        Custom Input
-                        (stdin)
-                      </label>
-
-                      <textarea
-                        value={
-                          stdin
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setStdin(
-                            event.target
-                              .value
-                          )
-                        }
-                        rows={2}
-                        placeholder="Type input for Run..."
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 p-2 font-mono text-slate-200 outline-none"
-                      />
-
-                    </div>
-
-                    {runOut ? (
-                      <>
-
-                        {runOut.stdout && (
-                          <pre className="whitespace-pre-wrap text-emerald-300">
-                            {
-                              runOut.stdout
-                            }
-                          </pre>
-                        )}
-
-                        {runOut.stderr && (
-                          <pre className="whitespace-pre-wrap text-rose-400">
-                            {
-                              runOut.stderr
-                            }
-                          </pre>
-                        )}
-
-                        <p className="mt-1 text-slate-500">
-                          Exit{" "}
-                          {
-                            runOut.exit_code
-                          }{" "}
-                          ·{" "}
-                          {
-                            runOut.time_ms
-                          }
-                          ms
-                        </p>
-
-                      </>
-                    ) : (
-                      <p className="text-slate-500">
-                        Press Run to
-                        execute your
-                        code.
-                      </p>
-                    )}
-
-                  </div>
-
-                ) : (
-
-                  <div className="space-y-2">
-
-                    {activeCp?.visibleTestCases?.map(
-                      (
-                        testCase,
-                        index
-                      ) => {
-
-                        const result =
-                          results?.results?.find(
-                            (
-                              item
-                            ) =>
-                              item.index ===
-                              index
-                          );
-
-                        return (
-                          <div
-                            key={
-                              index
-                            }
-                            className={`
-                              rounded-lg border p-2.5
-                              ${result
-                                ? result.passed
-                                  ? "border-emerald-500/40 bg-emerald-500/5"
-                                  : "border-rose-500/40 bg-rose-500/5"
-                                : "border-white/5"
-                              }
-                            `}
-                          >
-
-                            <div className="flex items-center justify-between">
-
-                              <span className="font-semibold text-slate-300">
-                                Test{" "}
-                                {
-                                  index +
-                                  1
-                                }
-                              </span>
-
-                              {result &&
-                                (result.passed ? (
-                                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                                ) : (
-                                  <XCircle className="h-4 w-4 text-rose-400" />
-                                ))}
-
-                            </div>
-
-                            <p className="mt-1 text-slate-500">
-
-                              Input:{" "}
-
-                              <span className="text-slate-300">
-                                {JSON.stringify(
-                                  testCase.input
-                                )}
-                              </span>
-
-                            </p>
-
-                            <p className="text-slate-500">
-
-                              Expected:{" "}
-
-                              <span className="text-slate-300">
-                                {JSON.stringify(
-                                  testCase.expectedOutput
-                                )}
-                              </span>
-
-                            </p>
-
-                            {result &&
-                              !result.passed &&
-                              result.actual !==
-                              undefined && (
-                                <p className="text-rose-400">
-                                  Got:{" "}
-                                  {JSON.stringify(
-                                    result.actual
-                                  )}
-                                </p>
-                              )}
-
-                          </div>
-                        );
-                      }
-                    )}
-
-                    {activeCp && (
-                      <p className="text-slate-500">
-                        +{" "}
-                        {
-                          activeCp.hiddenCount ||
-                          0
-                        }{" "}
-                        hidden test
-                        case(s) run
-                        on submit.
-                      </p>
-                    )}
-
-                    {results && (
-                      <div className="mt-1 flex flex-wrap gap-2">
-
-                        {(
-                          results.results ||
-                          []
-                        )
-                          .filter(
-                            (
-                              result
-                            ) =>
-                              result.hidden
-                          )
-                          .map(
-                            (
-                              result
-                            ) => (
-                              <span
-                                key={
-                                  result.index
-                                }
-                                className={`
-                                  rounded-md px-2 py-0.5
-                                  text-[11px] font-semibold
-                                  ${result.passed
-                                    ? "bg-emerald-500/15 text-emerald-300"
-                                    : "bg-rose-500/15 text-rose-300"
-                                  }
-                                `}
-                              >
-                                Hidden #
-                                {
-                                  result.index +
-                                  1
-                                }{" "}
-                                {result.passed
-                                  ? "✓"
-                                  : "✗"}
-                              </span>
-                            )
-                          )}
-
-                      </div>
-                    )}
-
-                    {!activeCp && (
-                      <p className="text-slate-500">
-                        Test cases
-                        appear when
-                        a checkpoint
-                        challenge is
-                        active.
-                      </p>
-                    )}
-
-                  </div>
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
+          <h2 className="mt-1 text-xl font-black text-white">
+            Test Your Understanding
+          </h2>
 
         </div>
 
       </div>
 
+
+      <p className="mt-3 text-sm text-slate-400">
+        Answer all questions correctly to complete this level.
+      </p>
+
+
       {/* ==================================================
-          COMPLETION MODAL
+          QUESTIONS
       ================================================== */}
 
-      <AnimatePresence>
+      <div className="mt-6 space-y-6">
 
-        {completedModal && (
-          <motion.div
-            className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4 backdrop-blur"
-            initial={{
-              opacity: 0,
-            }}
-            animate={{
-              opacity: 1,
-            }}
-            exit={{
-              opacity: 0,
-            }}
+        {mcqs.map((mcq, questionIndex) => (
+
+          <div
+            key={questionIndex}
+            className="rounded-xl border border-white/10 bg-white/[0.03] p-5"
           >
 
-            <motion.div
-              initial={{
-                scale: 0.9,
-                y: 20,
+            <p className="text-sm font-bold text-white">
+              Question {questionIndex + 1}
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              {mcq.question}
+            </p>
+
+
+            {/* OPTIONS */}
+
+            <div className="mt-4 space-y-2">
+
+              {Object.entries(mcq.options || {}).map(
+                ([optionKey, optionText]) => {
+
+                  const selected =
+                    mcqAnswers[questionIndex] === optionKey;
+
+                  return (
+
+                    <button
+                      key={optionKey}
+                      type="button"
+                      onClick={() =>
+                        setMcqAnswers((previous) => ({
+                          ...previous,
+                          [questionIndex]: optionKey,
+                        }))
+                      }
+                      className={`
+                        flex w-full items-center gap-3
+                        rounded-xl border p-3 text-left transition
+                        ${
+                          selected
+                            ? "border-cyan-400 bg-cyan-400/10"
+                            : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
+                        }
+                      `}
+                    >
+
+                      <span
+                        className={`
+                          grid h-8 w-8 shrink-0
+                          place-items-center rounded-lg
+                          text-sm font-bold
+                          ${
+                            selected
+                              ? "bg-cyan-400 text-slate-950"
+                              : "bg-white/10 text-slate-300"
+                          }
+                        `}
+                      >
+                        {optionKey}
+                      </span>
+
+                      <span className="text-sm text-slate-300">
+                        {optionText}
+                      </span>
+
+                    </button>
+
+                  );
+
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        ))}
+
+      </div>
+
+
+      {/* ==================================================
+          RESULT
+      ================================================== */}
+
+      {mcqResult && (
+
+        <div
+          className={`
+            mt-5 rounded-xl border p-4
+            ${
+              mcqResult.passed
+                ? "border-emerald-400/20 bg-emerald-400/10"
+                : "border-rose-400/20 bg-rose-400/10"
+            }
+          `}
+        >
+
+          <p className="text-sm font-bold text-white">
+            {mcqResult.correct}/{mcqResult.total} correct
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+
+            {mcqResult.passed
+              ? "Great! You passed this level."
+              : "Some answers are incorrect. Please try again."}
+
+          </p>
+
+        </div>
+
+      )}
+
+
+      {/* ==================================================
+          SUBMIT
+      ================================================== */}
+
+      <button
+        type="button"
+        onClick={submitMcqs}
+        disabled={mcqSubmitting}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+
+        {mcqSubmitting ? (
+
+          <>
+
+            <Loader2 className="h-4 w-4 animate-spin" />
+
+            Submitting...
+
+          </>
+
+        ) : (
+
+          <>
+
+            <CheckCircle2 className="h-4 w-4" />
+
+            Submit Answers
+
+          </>
+
+        )}
+
+      </button>
+
+    </div>
+
+  )}
+
+</div>
+
+
+{/* ==================================================
+    COMPLETION MODAL
+================================================== */}
+
+<AnimatePresence>
+
+  {completedModal && (
+
+    <motion.div
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4 backdrop-blur"
+      initial={{
+        opacity: 0,
+      }}
+      animate={{
+        opacity: 1,
+      }}
+      exit={{
+        opacity: 0,
+      }}
+    >
+
+      <motion.div
+        initial={{
+          scale: 0.9,
+          y: 20,
+        }}
+        animate={{
+          scale: 1,
+          y: 0,
+        }}
+        className="glass-dark w-full max-w-md rounded-3xl p-8 text-center"
+        data-testid="level-complete-modal"
+      >
+
+        <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-glow">
+
+          <PartyPopper className="h-8 w-8" />
+
+        </span>
+
+
+        <h3 className="mt-5 text-2xl font-black text-white">
+          Level Complete!
+        </h3>
+
+
+        <p className="mt-2 text-slate-300">
+          You solved all checkpoints and finished{" "}
+          {level.title}.
+          The next level is unlocked.
+        </p>
+
+
+        <div className="mt-6 flex flex-col gap-3">
+
+          {nextLevelId ? (
+
+            <button
+              onClick={() => {
+                setCompletedModal(false);
+
+                nav(
+                  `/skillhub/level/${nextLevelId}`
+                );
               }}
-              animate={{
-                scale: 1,
-                y: 0,
-              }}
-              className="glass-dark w-full max-w-md rounded-3xl p-8 text-center"
-              data-testid="level-complete-modal"
+              data-testid="next-level-btn"
+              className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 font-bold text-white"
             >
 
-              <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-glow">
+              Next Level
 
-                <PartyPopper className="h-8 w-8" />
+              <ChevronRight className="h-4 w-4" />
 
-              </span>
+            </button>
 
-              <h3 className="mt-5 text-2xl font-black text-white">
-                Level Complete!
-              </h3>
+          ) : (
 
-              <p className="mt-2 text-slate-300">
-                You solved all
-                checkpoints and
-                finished{" "}
-                {
-                  level.title
-                }.
-                The next level is
-                unlocked.
-              </p>
+            <p className="flex items-center justify-center gap-2 text-emerald-400">
 
-              <div className="mt-6 flex flex-col gap-3">
+              <Flag className="h-4 w-4" />
 
-                {nextLevelId ? (
-                  <button
-                    onClick={() => {
-                      setCompletedModal(
-                        false
-                      );
+              You reached the end of the path!
 
-                      nav(
-                        `/skillhub/level/${nextLevelId}`
-                      );
-                    }}
-                    data-testid="next-level-btn"
-                    className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 font-bold text-white"
-                  >
+            </p>
 
-                    Next Level
+          )}
 
-                    <ChevronRight className="h-4 w-4" />
 
-                  </button>
-                ) : (
-                  <p className="flex items-center justify-center gap-2 text-emerald-400">
+          <Link
+            to="/skillhub"
+            className="rounded-full border border-white/10 px-6 py-3 font-semibold text-slate-200 hover:bg-white/5"
+          >
+            Back to SkillHub
+          </Link>
 
-                    <Flag className="h-4 w-4" />
+        </div>
 
-                    You reached the
-                    end of the path!
+      </motion.div>
 
-                  </p>
-                )}
+    </motion.div>
 
-                <Link
-                  to="/skillhub"
-                  className="rounded-full border border-white/10 px-6 py-3 font-semibold text-slate-200 hover:bg-white/5"
-                >
-                  Back to SkillHub
-                </Link>
-
-              </div>
-
-            </motion.div>
-
-          </motion.div>
-        )}
+  )}
 
       </AnimatePresence>
 
     </div>
+
+  </div>
   );
 }

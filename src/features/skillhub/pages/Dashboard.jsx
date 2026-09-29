@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams, } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import {
@@ -31,6 +31,10 @@ const Card = ({ children, className = "" }) => {
 export default function Dashboard() {
   const navigate = useNavigate();
 
+    const { studentId } = useParams();
+
+  const isAdminStudentView = Boolean(studentId);
+
   const [data, setData] = useState(null);
   const [collegeCourses, setCollegeCourses] = useState(null);
 
@@ -55,11 +59,13 @@ export default function Dashboard() {
         setLoading(true);
         setDashboardError("");
 
-        const response = await api.studentSkillHubDashboard();
+      const response = isAdminStudentView
+  ? await api.studentSkillHubDashboardById(studentId)
+  : await api.studentSkillHubDashboard();
 
-        console.log("SkillHub Dashboard:", response);
+console.log("SkillHub Dashboard:", response);
 
-        setData(response);
+setData(response);
       } catch (error) {
         console.error("Dashboard error:", error?.response?.data || error);
 
@@ -74,7 +80,7 @@ export default function Dashboard() {
     };
 
     fetchDashboard();
-  }, []);
+}, [studentId, isAdminStudentView]);
 
   /*
    * --------------------------------------------------
@@ -90,7 +96,9 @@ useEffect(() => {
 
       // Backend identifies the student's college
       // from the authenticated student account.
-      const response = await api.studentCourses();
+      const response = isAdminStudentView
+  ? await api.adminStudentCourses(studentId)
+  : await api.studentCourses();
 
       console.log("Student Courses Response:", response);
 
@@ -114,7 +122,7 @@ useEffect(() => {
   };
 
   fetchCollegeCourses();
-}, []);
+}, [studentId, isAdminStudentView]);
 
   /*
    * --------------------------------------------------
@@ -758,7 +766,7 @@ const handleStartCourse = async (course) => {
                       >
                         <Play className="h-4 w-4 fill-current" />
 
-                        {progress === 100 ? "View Course" : "Continue"}
+                        {progress === 100 ? "View Course" : "Journey"}
 
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </button>

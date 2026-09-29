@@ -41,13 +41,26 @@ const [level, setLevel] = useState({
   title: "",
   description: "",
   xp: 100,
-  video: { url: "" },
+
+  video: {
+    url: "",
+  },
 
   theory: {
     learningObjectives: "",
     bestPractices: "",
+      explanation: "",
+  codeExample: "",
     commonMistakes: "",
   },
+
+  mcqs: [
+    {
+      question: "",
+      options: ["", "", "", ""],
+      correctAnswer: 0,
+    },
+  ],
 });
 
 const [cp, setCp] = useState({ order: 1, atSeconds: 5, title: "", scenario: "", problemStatement: "", difficulty: "Easy", xp: 25, starter: "# write your code\n", vin: "", vout: "", hin: "", hout: "" });
@@ -163,6 +176,22 @@ useEffect(() => {
     return toast.error("Level title required");
   }
 
+  const hasVideo = level.video.url.trim();
+
+if (!hasVideo) {
+  const validMcqs = level.mcqs.filter(
+    (mcq) =>
+      mcq.question.trim() &&
+      mcq.options.every((option) => option.trim())
+  );
+
+  if (validMcqs.length === 0) {
+    return toast.error(
+      "Add at least one MCQ for a level without video"
+    );
+  }
+}
+
   setBusy(true);
 
   try {
@@ -186,24 +215,36 @@ useEffect(() => {
   : {},
 
 theory: {
-  learningObjectives: level.theory.learningObjectives
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean),
+  learning_objectives: level.theory.learningObjectives.trim(),
+  explanation: level.theory.explanation.trim(),
+  best_practices: level.theory.bestPractices.trim(),
+  common_mistakes: level.theory.commonMistakes.trim(),
 
-  bestPractices: level.theory.bestPractices
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean),
-
-  commonMistakes: level.theory.commonMistakes
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean),
+  introduction_mcqs: level.video.url.trim()
+    ? []
+    : level.mcqs
+        .filter(
+          (mcq) =>
+            mcq.question.trim() &&
+            mcq.options.every((option) => option.trim())
+        )
+        .map((mcq) => ({
+          question: mcq.question.trim(),
+          options: {
+            A: mcq.options[0].trim(),
+            B: mcq.options[1].trim(),
+            C: mcq.options[2].trim(),
+            D: mcq.options[3].trim(),
+          },
+          correct_option: String.fromCharCode(
+            65 + Number(mcq.correctAnswer)
+          ),
+        })),
 },
-    });
 
-    toast.success("Level created");
+}); // <-- ADD THIS
+
+toast.success("Level created");
 
     // Fetch updated levels immediately
     const updatedLevels = await api.courseLevelsDropdown(courseId);
@@ -214,7 +255,7 @@ theory: {
     setLevelId(l.id);
 
     // Reset level form
-   setLevel({
+  setLevel({
   stage: "Beginner",
   levelNumber: Number(level.levelNumber) + 1,
   title: "",
@@ -228,8 +269,18 @@ theory: {
   theory: {
     learningObjectives: "",
     bestPractices: "",
+    explanation: "",
+    codeExample: "",
     commonMistakes: "",
   },
+
+  mcqs: [
+    {
+      question: "",
+      options: ["", "", "", ""],
+      correctAnswer: 0,
+    },
+  ],
 });
 
   } catch (error) {
@@ -707,6 +758,25 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
 </div>
 
 <div className="sm:col-span-3">
+  <Label>Explanation / Theory</Label>
+
+  <Area
+    rows={6}
+    value={level.theory.explanation}
+    onChange={(e) =>
+      setLevel({
+        ...level,
+        theory: {
+          ...level.theory,
+          explanation: e.target.value,
+        },
+      })
+    }
+    placeholder="Explain the concept that students should learn..."
+  />
+</div>
+
+<div className="sm:col-span-3">
   <Label>Best Practices</Label>
 
   <Area
@@ -743,12 +813,174 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
     placeholder="Enter common mistakes students should avoid..."
   />
 </div>
-
           </div>
+
+          {/* MCQ QUESTIONS - ONLY FOR LEVELS WITHOUT VIDEO */}
+{!level.video.url.trim() && (
+  <div className="sm:col-span-3 mt-4 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.03] p-5">
+
+    <div className="mb-4">
+      <h3 className="flex items-center gap-2 text-base font-bold text-white">
+        <CheckCircle2 className="h-5 w-5 text-cyan-400" />
+        Introduction MCQ Questions
+      </h3>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Since this level has no video, students will answer these
+        questions instead of solving programming challenges.
+      </p>
+    </div>
+
+    <div className="space-y-5">
+      {level.mcqs.map((mcq, mcqIndex) => (
+        <div
+          key={mcqIndex}
+          className="rounded-xl border border-white/10 bg-white/[0.03] p-4"
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-bold text-white">
+              Question {mcqIndex + 1}
+            </p>
+
+            {level.mcqs.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLevel((prev) => ({
+                    ...prev,
+                    mcqs: prev.mcqs.filter(
+                      (_, index) => index !== mcqIndex
+                    ),
+                  }));
+                }}
+                className="text-xs font-semibold text-rose-400 hover:text-rose-300"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+
+          {/* Question */}
+          <Area
+            rows={2}
+            value={mcq.question}
+            onChange={(e) => {
+              const updated = [...level.mcqs];
+
+              updated[mcqIndex] = {
+                ...updated[mcqIndex],
+                question: e.target.value,
+              };
+
+              setLevel({
+                ...level,
+                mcqs: updated,
+              });
+            }}
+            placeholder="Enter MCQ question..."
+          />
+
+          {/* Options */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {mcq.options.map((option, optionIndex) => (
+              <div key={optionIndex}>
+                <Label>
+                  Option {String.fromCharCode(65 + optionIndex)}
+                </Label>
+
+                <div className="flex gap-2">
+                  <Input
+                    value={option}
+                    onChange={(e) => {
+                      const updated = [...level.mcqs];
+
+                      const options = [
+                        ...updated[mcqIndex].options,
+                      ];
+
+                      options[optionIndex] = e.target.value;
+
+                      updated[mcqIndex] = {
+                        ...updated[mcqIndex],
+                        options,
+                      };
+
+                      setLevel({
+                        ...level,
+                        mcqs: updated,
+                      });
+                    }}
+                    placeholder={`Option ${String.fromCharCode(
+                      65 + optionIndex
+                    )}`}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...level.mcqs];
+
+                      updated[mcqIndex] = {
+                        ...updated[mcqIndex],
+                        correctAnswer: optionIndex,
+                      };
+
+                      setLevel({
+                        ...level,
+                        mcqs: updated,
+                      });
+                    }}
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${
+                      mcq.correctAnswer === optionIndex
+                        ? "border-emerald-400 bg-emerald-400/20 text-emerald-400"
+                        : "border-white/10 bg-white/5 text-slate-500"
+                    }`}
+                    title="Set correct answer"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-3 text-xs text-slate-500">
+            Click ✓ beside an option to mark it as the correct answer.
+          </p>
+        </div>
+      ))}
+    </div>
+
+    {/* Add Question */}
+    <button
+      type="button"
+      onClick={() => {
+        setLevel((prev) => ({
+          ...prev,
+          mcqs: [
+            ...prev.mcqs,
+            {
+              question: "",
+              options: ["", "", "", ""],
+              correctAnswer: 0,
+            },
+          ],
+        }));
+      }}
+      className="mt-4 flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-semibold text-cyan-400 hover:bg-cyan-400/15"
+    >
+      <Plus className="h-4 w-4" />
+      Add Question
+    </button>
+  </div>
+)}
           <button onClick={createLevel} disabled={busy} data-testid="create-level-btn" className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white hover:scale-105 transition-transform disabled:opacity-60"><Plus className="h-4 w-4" /> Add Level</button>
         </Section>
 
+        
+
         {/* Interactive timeline + challenge builder */}
+        {level.video.url.trim() && (
         <Section title="Interactive Timeline & Challenge Builder" icon={Flag}>
           <div className="mb-4"><Label>Level</Label>
             <select
@@ -798,6 +1030,7 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
           </div>
           <button onClick={addCheckpoint} disabled={busy} data-testid="add-checkpoint-btn" className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white hover:scale-105 transition-transform disabled:opacity-60"><Plus className="h-4 w-4" /> Add Checkpoint</button>
         </Section>
+        )}
 
         {/* College Package */}
         <Section title="College Package" icon={GraduationCap}>
