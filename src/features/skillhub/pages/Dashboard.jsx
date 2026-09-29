@@ -8,6 +8,7 @@ import {
   Award,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,  
   Loader2,
   BookOpen,
   Target,
@@ -54,32 +55,45 @@ export default function Dashboard() {
    */
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        setLoading(true);
-        setDashboardError("");
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+      setDashboardError("");
 
-      const response = isAdminStudentView
-  ? await api.studentSkillHubDashboardById(studentId)
+      console.log("Dashboard Student ID:", studentId);
+
+     const response = isAdminStudentView
+  ? await api.adminStudentSkillHubDashboard(studentId)
   : await api.studentSkillHubDashboard();
 
-console.log("SkillHub Dashboard:", response);
+console.log("=================================");
+console.log("ADMIN STUDENT ID:", studentId);
+console.log("ADMIN DASHBOARD RESPONSE:", response);
+console.log("CONTINUE COURSES:", response?.continue_courses);
+console.log("COURSES:", response?.courses);
+console.log("ENROLLED COURSES:", response?.enrolled_courses);
+console.log("=================================");
 
 setData(response);
-      } catch (error) {
-        console.error("Dashboard error:", error?.response?.data || error);
+    } catch (error) {
+      console.error(
+        "Dashboard error:",
+        error?.response?.data || error
+      );
 
-        setDashboardError(
-          error?.response?.data?.detail || "Unable to load dashboard",
-        );
+      setDashboardError(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Unable to load dashboard"
+      );
 
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchDashboard();
+  fetchDashboard();
 }, [studentId, isAdminStudentView]);
 
   /*
@@ -100,9 +114,17 @@ useEffect(() => {
   ? await api.adminStudentCourses(studentId)
   : await api.studentCourses();
 
-      console.log("Student Courses Response:", response);
+     console.log("=================================");
+console.log("ADMIN STUDENT ID:", studentId);
+console.log("ADMIN STUDENT COURSES RESPONSE:", response);
+console.log("PACKAGE COURSES:", response?.package_courses);
+console.log("ENROLLED COURSES:", response?.enrolled_courses);
+console.log("COURSES:", response?.courses);
+console.log("COLLEGE ID:", response?.college_id);
+console.log("COLLEGE NAME:", response?.college_name);
+console.log("=================================");
 
-      setCollegeCourses(response);
+setCollegeCourses(response);
     } catch (error) {
       console.error(
         "Student courses error:",
@@ -146,13 +168,20 @@ useEffect(() => {
    * --------------------------------------------------
    */
 
-  const courses = data?.continue_courses || [];
+ const courses =
+  data?.continue_courses ||
+  data?.courses ||
+  data?.enrolled_courses ||
+  [];
 
-  const achievements = data?.achievements || [];
+const achievements =
+  data?.achievements || [];
 
-  const recentlyCompleted = data?.recently_completed || [];
+const recentlyCompleted =
+  data?.recently_completed || [];
 
-  const certificates = data?.certificates || [];
+const certificates =
+  data?.certificates || [];
 
   const collegeConnected = Boolean(
   collegeCourses?.college_id ||
@@ -239,6 +268,17 @@ const handleStartCourse = async (course) => {
   return (
     <Shell>
       <div className="mx-auto max-w-6xl space-y-10">
+
+        {isAdminStudentView && (
+  <button
+    type="button"
+    onClick={() => navigate("/skillhub/admin/students")}
+    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
+  >
+    <ArrowLeft className="h-4 w-4" />
+    Back to Students
+  </button>
+)}
         {/* --------------------------------------------------
             COLLEGE PACKAGES
         -------------------------------------------------- */}

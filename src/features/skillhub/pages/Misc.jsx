@@ -172,9 +172,22 @@ const filteredStudents =
     {filteredStudents.map((student) => (
      <div
   key={student.id}
- onClick={() =>
-  navigate(`/skillhub/admin/students/${student.id}/dashboard`)
-}
+ onClick={() => {
+  const studentId =
+    student.student_id ||
+    student.user_id ||
+    student.id;
+
+  console.log("Selected Student:", student);
+  console.log("Selected Student ID:", studentId);
+
+  if (!studentId) {
+    console.error("Student ID not found:", student);
+    return;
+  }
+
+  navigate(`/skillhub/admin/students/${studentId}/dashboard`);
+}}
   className="cursor-pointer rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 transition hover:border-cyan-400/40 hover:bg-slate-900"
 >
         {/* Student Details */}
