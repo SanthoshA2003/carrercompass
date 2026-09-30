@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowUp,
   ArrowLeft,
+  ArrowRight,
   Menu,
   Check,
   CheckCircle2,
