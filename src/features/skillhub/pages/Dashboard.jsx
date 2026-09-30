@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams, } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import {
@@ -8,7 +8,7 @@ import {
   Award,
   CheckCircle2,
   ArrowRight,
-  ArrowLeft,  
+  ArrowLeft,
   Loader2,
   BookOpen,
   Target,
@@ -32,7 +32,7 @@ const Card = ({ children, className = "" }) => {
 export default function Dashboard() {
   const navigate = useNavigate();
 
-    const { studentId } = useParams();
+  const { studentId } = useParams();
 
   const isAdminStudentView = Boolean(studentId);
 
@@ -55,46 +55,43 @@ export default function Dashboard() {
    */
 
   useEffect(() => {
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
-      setDashboardError("");
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setDashboardError("");
 
-      console.log("Dashboard Student ID:", studentId);
+        console.log("Dashboard Student ID:", studentId);
 
-     const response = isAdminStudentView
-  ? await api.adminStudentSkillHubDashboard(studentId)
-  : await api.studentSkillHubDashboard();
+        const response = isAdminStudentView
+          ? await api.adminStudentSkillHubDashboard(studentId)
+          : await api.studentSkillHubDashboard();
 
-console.log("=================================");
-console.log("ADMIN STUDENT ID:", studentId);
-console.log("ADMIN DASHBOARD RESPONSE:", response);
-console.log("CONTINUE COURSES:", response?.continue_courses);
-console.log("COURSES:", response?.courses);
-console.log("ENROLLED COURSES:", response?.enrolled_courses);
-console.log("=================================");
+        console.log("=================================");
+        console.log("ADMIN STUDENT ID:", studentId);
+        console.log("ADMIN DASHBOARD RESPONSE:", response);
+        console.log("CONTINUE COURSES:", response?.continue_courses);
+        console.log("COURSES:", response?.courses);
+        console.log("ENROLLED COURSES:", response?.enrolled_courses);
+        console.log("=================================");
 
-setData(response);
-    } catch (error) {
-      console.error(
-        "Dashboard error:",
-        error?.response?.data || error
-      );
+        setData(response);
+      } catch (error) {
+        console.error("Dashboard error:", error?.response?.data || error);
 
-      setDashboardError(
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Unable to load dashboard"
-      );
+        setDashboardError(
+          error?.response?.data?.detail ||
+            error?.response?.data?.message ||
+            "Unable to load dashboard",
+        );
 
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchDashboard();
-}, [studentId, isAdminStudentView]);
+    fetchDashboard();
+  }, [studentId, isAdminStudentView]);
 
   /*
    * --------------------------------------------------
@@ -102,49 +99,46 @@ setData(response);
    * --------------------------------------------------
    */
 
-useEffect(() => {
-  const fetchCollegeCourses = async () => {
-    try {
-      setCoursesLoading(true);
-      setCollegeCoursesError("");
+  useEffect(() => {
+    const fetchCollegeCourses = async () => {
+      try {
+        setCoursesLoading(true);
+        setCollegeCoursesError("");
 
-      // Backend identifies the student's college
-      // from the authenticated student account.
-      const response = isAdminStudentView
-  ? await api.adminStudentCourses(studentId)
-  : await api.studentCourses();
+        // Backend identifies the student's college
+        // from the authenticated student account.
+        const response = isAdminStudentView
+          ? await api.adminStudentCourses(studentId)
+          : await api.studentCourses();
 
-     console.log("=================================");
-console.log("ADMIN STUDENT ID:", studentId);
-console.log("ADMIN STUDENT COURSES RESPONSE:", response);
-console.log("PACKAGE COURSES:", response?.package_courses);
-console.log("ENROLLED COURSES:", response?.enrolled_courses);
-console.log("COURSES:", response?.courses);
-console.log("COLLEGE ID:", response?.college_id);
-console.log("COLLEGE NAME:", response?.college_name);
-console.log("=================================");
+        console.log("=================================");
+        console.log("ADMIN STUDENT ID:", studentId);
+        console.log("ADMIN STUDENT COURSES RESPONSE:", response);
+        console.log("PACKAGE COURSES:", response?.package_courses);
+        console.log("ENROLLED COURSES:", response?.enrolled_courses);
+        console.log("COURSES:", response?.courses);
+        console.log("COLLEGE ID:", response?.college_id);
+        console.log("COLLEGE NAME:", response?.college_name);
+        console.log("=================================");
 
-setCollegeCourses(response);
-    } catch (error) {
-      console.error(
-        "Student courses error:",
-        error?.response?.data || error
-      );
+        setCollegeCourses(response);
+      } catch (error) {
+        console.error("Student courses error:", error?.response?.data || error);
 
-      setCollegeCoursesError(
-        error?.response?.data?.detail ||
-          error?.response?.data?.message ||
-          "Unable to load college packages"
-      );
+        setCollegeCoursesError(
+          error?.response?.data?.detail ||
+            error?.response?.data?.message ||
+            "Unable to load college packages",
+        );
 
-      setCollegeCourses(null);
-    } finally {
-      setCoursesLoading(false);
-    }
-  };
+        setCollegeCourses(null);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
 
-  fetchCollegeCourses();
-}, [studentId, isAdminStudentView]);
+    fetchCollegeCourses();
+  }, [studentId, isAdminStudentView]);
 
   /*
    * --------------------------------------------------
@@ -168,28 +162,20 @@ setCollegeCourses(response);
    * --------------------------------------------------
    */
 
- const courses =
-  data?.continue_courses ||
-  data?.courses ||
-  data?.enrolled_courses ||
-  [];
+  const courses =
+    data?.continue_courses || data?.courses || data?.enrolled_courses || [];
 
-const achievements =
-  data?.achievements || [];
+  const achievements = data?.achievements || [];
 
-const recentlyCompleted =
-  data?.recently_completed || [];
+  const recentlyCompleted = data?.recently_completed || [];
 
-const certificates =
-  data?.certificates || [];
+  const certificates = data?.certificates || [];
 
   const collegeConnected = Boolean(
-  collegeCourses?.college_id ||
-  collegeCourses?.college_name
-);
+    collegeCourses?.college_id || collegeCourses?.college_name,
+  );
 
-const collegeCode = collegeCourses?.college_code || "";
-
+  const collegeCode = collegeCourses?.college_code || "";
 
   /*
    * API Response:
@@ -216,69 +202,62 @@ const collegeCode = collegeCourses?.college_code || "";
    * --------------------------------------------------
    */
 
-const handleStartCourse = async (course) => {
-  const courseId =
-    course.course_id ||
-    course.id ||
-    course.courseId;
+  const handleStartCourse = async (course) => {
+    const courseId = course.course_id || course.id || course.courseId;
 
-  if (!courseId) {
-    console.error("Course ID not found:", course);
-    return;
-  }
-
-  try {
-    setEnrollingCourse(courseId);
-
-    console.log("Enrolling student in course:", courseId);
-
-    await api.enrollCourse(courseId);
-
-    console.log("Course enrolled successfully:", courseId);
-
-    // Open the course after successful enrollment
-    navigate(`/skillhub/journey/${courseId}`);
-  } catch (error) {
-    console.error(
-      "Course enrollment failed:",
-      error?.response?.data || error
-    );
-
-    const message =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      "Unable to enroll in this course.";
-
-    // If backend says already enrolled,
-    // still allow the student to open the course.
-    if (
-      error?.response?.status === 400 ||
-      error?.response?.status === 409
-    ) {
-      navigate(`/skillhub/journey/${courseId}`);
+    if (!courseId) {
+      console.error("Course ID not found:", course);
       return;
     }
 
-    alert(message);
-  } finally {
-    setEnrollingCourse(null);
-  }
-};
+    try {
+      setEnrollingCourse(courseId);
+
+      console.log("Enrolling student in course:", courseId);
+
+      await api.enrollCourse(courseId);
+
+      console.log("Course enrolled successfully:", courseId);
+
+      // Open the course after successful enrollment
+      navigate(`/skillhub/journey/${courseId}`);
+    } catch (error) {
+      console.error(
+        "Course enrollment failed:",
+        error?.response?.data || error,
+      );
+
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Unable to enroll in this course.";
+
+      // If backend says already enrolled,
+      // still allow the student to open the course.
+      if (error?.response?.status === 400 || error?.response?.status === 409) {
+        navigate(`/skillhub/journey/${courseId}`);
+        return;
+      }
+
+      alert(message);
+    } finally {
+      setEnrollingCourse(null);
+    }
+  };
 
   return (
     <Shell>
       <div className="mx-auto max-w-6xl space-y-10">
-
         {isAdminStudentView && (
-  <button
-    type="button"
-    onClick={() => navigate("/skillhub/admin/students")}
-    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
-  >
-    <ArrowLeft className="h-4 w-4" />
-    Back to Students
-  </button>
-)}
+          <button
+            type="button"
+            onClick={() => navigate("/skillhub/admin/students")}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Students
+          </button>
+        )}
         {/* --------------------------------------------------
             COLLEGE PACKAGES
         -------------------------------------------------- */}
@@ -383,49 +362,45 @@ const handleStartCourse = async (course) => {
     COLLEGE PACKAGE CARDS
 ========================================== */}
 
-{!coursesLoading &&
-  !collegeCoursesError &&
-  packageCourses.length > 0 && (
-    <div className="grid gap-5 lg:grid-cols-2">
+            {!coursesLoading &&
+              !collegeCoursesError &&
+              packageCourses.length > 0 && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {Object.entries(
+                    packageCourses.reduce((packages, course) => {
+                      const packageName =
+                        course.package_name || "College Package";
 
-      {Object.entries(
-        packageCourses.reduce((packages, course) => {
-          const packageName =
-            course.package_name || "College Package";
+                      if (!packages[packageName]) {
+                        packages[packageName] = [];
+                      }
 
-          if (!packages[packageName]) {
-            packages[packageName] = [];
-          }
+                      packages[packageName].push(course);
 
-          packages[packageName].push(course);
+                      return packages;
+                    }, {}),
+                  ).map(([packageName, packageCourses], packageIndex) => {
+                    const isExpanded = expandedPackage === packageName;
 
-          return packages;
-        }, {})
-      ).map(
-        ([packageName, packageCourses], packageIndex) => {
+                    const packageDescription =
+                      packageCourses[0]?.package_description ||
+                      "Courses provided by your college.";
 
-          const isExpanded =
-            expandedPackage === packageName;
-
-          const packageDescription =
-            packageCourses[0]?.package_description ||
-            "Courses provided by your college.";
-
-          return (
-            <motion.div
-              key={packageName}
-              initial={{
-                opacity: 0,
-                y: 15,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                delay: packageIndex * 0.08,
-              }}
-              className="
+                    return (
+                      <motion.div
+                        key={packageName}
+                        initial={{
+                          opacity: 0,
+                          y: 15,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        transition={{
+                          delay: packageIndex * 0.08,
+                        }}
+                        className="
                 group
                 relative
                 overflow-hidden
@@ -440,12 +415,11 @@ const handleStartCourse = async (course) => {
                 transition
                 hover:border-cyan-400/30
               "
-            >
+                      >
+                        {/* Decorative Glow */}
 
-              {/* Decorative Glow */}
-
-              <div
-                className="
+                        <div
+                          className="
                   pointer-events-none
                   absolute
                   -right-16
@@ -458,67 +432,57 @@ const handleStartCourse = async (course) => {
                   transition
                   group-hover:bg-cyan-400/20
                 "
-              />
+                        />
 
-              <div className="relative">
-
-                {/* ======================================
+                        <div className="relative">
+                          {/* ======================================
                     PACKAGE HEADER
                 ====================================== */}
 
-                <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
+                                Course Package
+                              </p>
 
-                  <div className="min-w-0">
+                              <h2 className="mt-1 text-xl font-black text-white">
+                                {packageName}
+                              </h2>
 
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
-                      Course Package
-                    </p>
+                              <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
+                                {packageDescription}
+                              </p>
+                            </div>
 
-                    <h2 className="mt-1 text-xl font-black text-white">
-                      {packageName}
-                    </h2>
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/10">
+                              <Package className="h-5 w-5 text-cyan-400" />
+                            </div>
+                          </div>
 
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
-                      {packageDescription}
-                    </p>
-
-                  </div>
-
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/10">
-                    <Package className="h-5 w-5 text-cyan-400" />
-                  </div>
-
-                </div>
-
-
-                {/* ======================================
+                          {/* ======================================
                     PACKAGE FOOTER
                 ====================================== */}
 
-                <div className="mt-5 flex items-center justify-between">
+                          <div className="mt-5 flex items-center justify-between">
+                            {/* Course Count */}
 
-                  {/* Course Count */}
+                            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                              {packageCourses.length}{" "}
+                              {packageCourses.length === 1
+                                ? "Course"
+                                : "Courses"}
+                            </span>
 
-                  <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300">
-                    {packageCourses.length}{" "}
-                    {packageCourses.length === 1
-                      ? "Course"
-                      : "Courses"}
-                  </span>
+                            {/* View Button */}
 
-
-                  {/* View Button */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedPackage(
-                        isExpanded
-                          ? null
-                          : packageName
-                      )
-                    }
-                    className="
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedPackage(
+                                  isExpanded ? null : packageName,
+                                )
+                              }
+                              className="
                       inline-flex
                       items-center
                       gap-2
@@ -532,67 +496,56 @@ const handleStartCourse = async (course) => {
                       transition
                       hover:scale-105
                     "
-                  >
+                            >
+                              {isExpanded ? "Hide Courses" : "View Courses"}
 
-                    {isExpanded
-                      ? "Hide Courses"
-                      : "View Courses"}
+                              <ArrowRight
+                                className={`h-4 w-4 transition-transform ${
+                                  isExpanded ? "rotate-90" : ""
+                                }`}
+                              />
+                            </button>
+                          </div>
 
-                    <ArrowRight
-                      className={`h-4 w-4 transition-transform ${
-                        isExpanded
-                          ? "rotate-90"
-                          : ""
-                      }`}
-                    />
-
-                  </button>
-
-                </div>
-
-
-                {/* ======================================
+                          {/* ======================================
                     COURSES - ONLY WHEN VIEW IS CLICKED
                 ====================================== */}
 
-                {isExpanded && (
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      height: 0,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      height: "auto",
-                    }}
-                    transition={{
-                      duration: 0.25,
-                    }}
-                    className="mt-5 space-y-3"
-                  >
+                          {isExpanded && (
+                            <motion.div
+                              initial={{
+                                opacity: 0,
+                                height: 0,
+                              }}
+                              animate={{
+                                opacity: 1,
+                                height: "auto",
+                              }}
+                              transition={{
+                                duration: 0.25,
+                              }}
+                              className="mt-5 space-y-3"
+                            >
+                              {packageCourses.map((course) => {
+                                const courseId =
+                                  course.course_id ||
+                                  course.id ||
+                                  course.courseId;
 
-                    {packageCourses.map((course) => {
+                                const courseTitle =
+                                  course.title ||
+                                  course.name ||
+                                  course.course_name ||
+                                  "Untitled Course";
 
-                      const courseId =
-                        course.course_id ||
-                        course.id ||
-                        course.courseId;
+                                const courseDescription =
+                                  course.description ||
+                                  "College assigned course";
 
-                      const courseTitle =
-                        course.title ||
-                        course.name ||
-                        course.course_name ||
-                        "Untitled Course";
-
-                      const courseDescription =
-                        course.description ||
-                        "College assigned course";
-
-
-                      return (
-                        <div
-                          key={courseId}
-                          className="
+                                return (
+                                  <div
+                                    key={courseId}
+                                    className="
                             rounded-xl
                             border
                             border-white/10
@@ -601,60 +554,54 @@ const handleStartCourse = async (course) => {
                             transition
                             hover:bg-white/[0.06]
                           "
-                        >
+                                  >
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                      {/* Course Information */}
 
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                      <div className="min-w-0">
+                                        <h3 className="text-sm font-bold text-white">
+                                          {courseTitle}
+                                        </h3>
 
-                            {/* Course Information */}
+                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
+                                          {courseDescription}
+                                        </p>
 
-                            <div className="min-w-0">
+                                        {/* Course Meta */}
 
-                              <h3 className="text-sm font-bold text-white">
-                                {courseTitle}
-                              </h3>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                          {course.difficulty && (
+                                            <span className="rounded-full bg-violet-400/10 px-2.5 py-1 text-[10px] font-semibold text-violet-300">
+                                              {course.difficulty}
+                                            </span>
+                                          )}
 
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
-                                {courseDescription}
-                              </p>
+                                          {course.stage && (
+                                            <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-300">
+                                              {course.stage}
+                                            </span>
+                                          )}
 
+                                          {course.level && (
+                                            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+                                              {course.level}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
 
-                              {/* Course Meta */}
+                                      {/* Start Course */}
 
-                              <div className="mt-2 flex flex-wrap gap-2">
-
-                                {course.difficulty && (
-                                  <span className="rounded-full bg-violet-400/10 px-2.5 py-1 text-[10px] font-semibold text-violet-300">
-                                    {course.difficulty}
-                                  </span>
-                                )}
-
-                                {course.stage && (
-                                  <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-300">
-                                    {course.stage}
-                                  </span>
-                                )}
-
-                                {course.level && (
-                                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
-                                    {course.level}
-                                  </span>
-                                )}
-
-                              </div>
-
-                            </div>
-
-
-                            {/* Start Course */}
-
-                           <button
-  type="button"
-  disabled={
-    !courseId ||
-    enrollingCourse === courseId
-  }
-  onClick={() => handleStartCourse(course)}
-  className="
+                                      <button
+                                        type="button"
+                                        disabled={
+                                          !courseId ||
+                                          enrollingCourse === courseId
+                                        }
+                                        onClick={() =>
+                                          handleStartCourse(course)
+                                        }
+                                        className="
     inline-flex
     shrink-0
     items-center
@@ -672,36 +619,29 @@ const handleStartCourse = async (course) => {
     disabled:cursor-not-allowed
     disabled:opacity-50
   "
->
-  {enrollingCourse === courseId
-    ? "Enrolling..."
-    : "Start Course"}
+                                      >
+                                        {enrollingCourse === courseId
+                                          ? "Enrolling..."
+                                          : "Start Course"}
 
-  {enrollingCourse === courseId ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : (
-    <ArrowRight className="h-4 w-4" />
-  )}
-</button>
-
-                          </div>
-
+                                        {enrollingCourse === courseId ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <ArrowRight className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </motion.div>
+                          )}
                         </div>
-                      );
-                    })}
-
-                  </motion.div>
-                )}
-
-              </div>
-
-            </motion.div>
-          );
-        }
-      )}
-
-    </div>
-  )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
           </section>
         )}
 
