@@ -14,6 +14,7 @@ import WhyMyMentor from "@/features/career/components/landing/WhyMyMentor";
 import PlatformAudience from "@/features/career/components/landing/PlatformAudience";
 import CareerInsights from "@/features/career/components/landing/CareerInsights";
 import MentorBooking from "@/features/career/components/landing/MentorBooking";
+import Trainers from "@/features/career/components/landing/Mentors";
 import Pricing from "@/features/career/components/landing/Pricing";
 import FAQ from "@/features/career/components/landing/FAQ";
 import CTA from "@/features/career/components/landing/CTA";
@@ -33,6 +34,7 @@ export default function Landing() {
         {/* <CareerPersonas /> */}
         <CareerGraph />
         <CareerReadiness />
+         <Trainers />
         <LearningSection />
         <ProjectsSection />
         <CareerInspirations />

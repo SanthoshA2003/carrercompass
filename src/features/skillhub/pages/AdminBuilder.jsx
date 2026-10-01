@@ -980,8 +980,8 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
         
 
         {/* Interactive timeline + challenge builder */}
-        {level.video.url.trim() && (
-        <Section title="Interactive Timeline & Challenge Builder" icon={Flag}>
+       {/* Interactive timeline + challenge builder */}
+<Section title="Interactive Timeline & Challenge Builder" icon={Flag}>
           <div className="mb-4"><Label>Level</Label>
             <select
               value={levelId}
@@ -1030,8 +1030,7 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
           </div>
           <button onClick={addCheckpoint} disabled={busy} data-testid="add-checkpoint-btn" className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white hover:scale-105 transition-transform disabled:opacity-60"><Plus className="h-4 w-4" /> Add Checkpoint</button>
         </Section>
-        )}
-
+    
         {/* College Package */}
         <Section title="College Package" icon={GraduationCap}>
           <div className="mb-6 rounded-xl border border-violet-400/10 bg-violet-500/[0.03] p-4">

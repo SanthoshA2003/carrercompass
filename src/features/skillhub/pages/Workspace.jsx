@@ -928,102 +928,78 @@ const [mcqResult, setMcqResult] = useState(null);
            GET /api/progress/user/{user_id}/level/{level_id}
         --------------------------------------------------- */
 
-      /* ---------------------------------------------------
-   PROGRESS
---------------------------------------------------- */
+        const userId = getStoredUserId();
 
-const userId = getStoredUserId();
+        if (!userId) {
+          console.warn(
+            "Progress API skipped: user ID not found"
+          );
 
-// Introduction levels without video do not need
-// an existing progress record when they are opened.
-// Progress will be created after the MCQ is passed.
+          setProgressId(null);
+          setPassed(new Set());
+          setVideoDone(false);
+        } else {
+          try {
+            const progress =
+              await fetchUserLevelProgress({
+                userId,
+                levelId,
+              });
 
-const hasLevelVideo = Boolean(
-  d?.video?.url &&
-  d.video.url.trim()
-);
+            if (!mounted) return;
 
-if (!userId) {
-  console.warn(
-    "Progress API skipped: user ID not found"
-  );
+            const loadedProgressId =
+              getProgressId(progress);
 
-  setProgressId(null);
-  setPassed(new Set());
-  setVideoDone(false);
+            setProgressId(loadedProgressId);
 
-} else if (!hasLevelVideo) {
-  // No-video Introduction level
-  // Do NOT call GET /progress/user/.../level/...
-  setProgressId(null);
-  setPassed(new Set());
-  setVideoDone(false);
+            const passedIds =
+              getPassedCheckpointIds(progress);
 
-  console.log(
-    "Progress GET skipped: Introduction level has no video."
-  );
+            setPassed(new Set(passedIds));
+            setVideoDone(
+              getVideoCompleted(progress)
+            );
 
-} else {
-  try {
-    const progress =
-      await fetchUserLevelProgress({
-        userId,
-        levelId,
-      });
+            console.log(
+              "USER LEVEL PROGRESS LOADED:",
+              progress
+            );
 
-    if (!mounted) return;
+            console.log(
+              "PROGRESS ID:",
+              loadedProgressId
+            );
+          } catch (progressError) {
+            console.error(
+              "USER LEVEL PROGRESS API ERROR:",
+              progressError
+            );
 
-    const loadedProgressId =
-      getProgressId(progress);
+            if (!mounted) return;
 
-    setProgressId(loadedProgressId);
+            if (progressError?.status === 401) {
+              toast.error(
+                "Your session has expired. Please login again."
+              );
+              nav("/login", { replace: true });
+              return;
+            }
 
-    const passedIds =
-      getPassedCheckpointIds(progress);
-
-    setPassed(new Set(passedIds));
-
-    setVideoDone(
-      getVideoCompleted(progress)
-    );
-
-    console.log(
-      "USER LEVEL PROGRESS LOADED:",
-      progress
-    );
-
-    console.log(
-      "PROGRESS ID:",
-      loadedProgressId
-    );
-
-  } catch (progressError) {
-    console.error(
-      "USER LEVEL PROGRESS API ERROR:",
-      progressError
-    );
-
-    if (!mounted) return;
-
-    if (progressError?.status === 401) {
-      toast.error(
-        "Your session has expired. Please login again."
-      );
-
-      nav("/login", {
-        replace: true,
-      });
-
-      return;
-    }
-
-    toast.error(
-      progressError?.message ||
-      "Unable to load your progress"
-    );
-  }
-}
-        
+            // 404 means this user has no progress record yet.
+            // Save Progress will create it with POST /api/progress.
+            if (progressError?.status === 404) {
+              setProgressId(null);
+              setPassed(new Set());
+              setVideoDone(false);
+            } else {
+              toast.error(
+                progressError?.message ||
+                "Unable to load your progress"
+              );
+            }
+          }
+        }
 
         console.log(
           "Level loaded successfully:",
@@ -1174,36 +1150,17 @@ if (!userId) {
      PROGRESS API
   ======================================================= */
 
-const saveProgressRecord = async ({
-  userId,
-  courseId,
-  levelId,
-  checkpointsPassed,
-  videoCompleted,
-  completed,
-}) => {
-  if (progressId) {
-    const updated = await updateProgressRecord({
-      progressId,
-      userId,
-      courseId,
-      levelId,
-      checkpointsPassed,
-      videoCompleted,
-      completed,
-    });
-
-    const updatedId = getProgressId(updated);
-
-    if (updatedId) {
-      setProgressId(updatedId);
-    }
-
-    return updated;
-  }
-
-  // No existing progress record -> create one
-  const created = await createProgressRecord({
+  const saveProgressRecord = async ({
+    userId,
+    courseId,
+    levelId,
+    checkpointsPassed,
+    videoCompleted,
+    completed,
+  }) => {
+    if (progressId) {
+  const updated = await updateProgressRecord({
+    progressId,
     userId,
     courseId,
     levelId,
@@ -1212,14 +1169,43 @@ const saveProgressRecord = async ({
     completed,
   });
 
-  const createdId = getProgressId(created);
+      const updatedId = getProgressId(updated);
 
-  if (createdId) {
-    setProgressId(createdId);
-  }
+      if (updatedId) {
+        setProgressId(updatedId);
+      }
 
-  return created || null;
-};
+      return updated;
+    }
+
+    const created = await createProgressRecord({
+      userId,
+      courseId,
+      levelId,
+      checkpointsPassed,
+      videoCompleted,
+      completed,
+    });
+
+    let createdId = getProgressId(created);
+
+    // Some backends return 201 without the full progress object.
+    // Fetch it once so the next Save uses PUT instead of POST.
+    if (!createdId) {
+      const loaded = await fetchUserLevelProgress({
+        userId,
+        levelId,
+      });
+
+      createdId = getProgressId(loaded);
+    }
+
+    if (createdId) {
+      setProgressId(createdId);
+    }
+
+    return created || null;
+  };
 
   /* =======================================================
      PAUSE + SAVE PROGRESS
