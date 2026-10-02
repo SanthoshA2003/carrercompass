@@ -41,9 +41,13 @@ const LANGS = [
     label: "JavaScript",
   },
   {
-    id: "java",
-    label: "Java (soon)",
+    id: "sql",
+    label: "SQL",
   },
+  // {
+  //   id: "java",
+  //   label: "Java ",
+  // },
 ];
 
 /* =========================================================
@@ -1969,8 +1973,10 @@ const submitMcqs = async () => {
 
   try {
     let correctCount = 0;
+    const questionResults = [];
 
     for (let index = 0; index < mcqs.length; index++) {
+      const mcq = mcqs[index];
       const selectedOption = mcqAnswers[index];
 
       const response = await api.introductionMcqSubmit({
@@ -1984,14 +1990,34 @@ const submitMcqs = async () => {
         response
       );
 
-      const isCorrect =
-        response?.correct === true ||
-        response?.is_correct === true ||
-        response?.correct_option === selectedOption;
+      // Backend result if available
+      const hasServerResult =
+        typeof response?.correct === "boolean" ||
+        typeof response?.is_correct === "boolean" ||
+        typeof response?.correct_option === "string";
+
+      const correctOption =
+        response?.correct_option ||
+        mcq.correct_option;
+
+      const isCorrect = hasServerResult
+        ? (
+            response?.correct === true ||
+            response?.is_correct === true ||
+            response?.correct_option === selectedOption
+          )
+        : selectedOption === correctOption;
 
       if (isCorrect) {
         correctCount++;
       }
+
+      questionResults.push({
+        questionIndex: index,
+        selectedOption,
+        correctOption,
+        isCorrect,
+      });
     }
 
     const passed = correctCount === mcqs.length;
@@ -2000,11 +2026,12 @@ const submitMcqs = async () => {
       correct: correctCount,
       total: mcqs.length,
       passed,
+      details: questionResults,
     });
 
     if (!passed) {
       toast.error(
-        `${correctCount}/${mcqs.length} correct. Try again!`
+        `${correctCount}/${mcqs.length} correct. Check the wrong answers below.`
       );
       return;
     }
@@ -3057,7 +3084,11 @@ const submitMcqs = async () => {
 
       <div className="mt-6 space-y-6">
 
-        {mcqs.map((mcq, questionIndex) => (
+  {mcqs.map((mcq, questionIndex) => {
+    const selectedOption = mcqAnswers[questionIndex];
+    const submitted = Boolean(mcqResult);
+
+    return (
 
           <div
             key={questionIndex}
@@ -3078,64 +3109,151 @@ const submitMcqs = async () => {
             <div className="mt-4 space-y-2">
 
               {Object.entries(mcq.options || {}).map(
-                ([optionKey, optionText]) => {
+  ([optionKey, optionText]) => {
 
-                  const selected =
-                    mcqAnswers[questionIndex] === optionKey;
+    const selected =
+      mcqAnswers[questionIndex] === optionKey;
 
-                  return (
+    
 
-                    <button
-                      key={optionKey}
-                      type="button"
-                      onClick={() =>
-                        setMcqAnswers((previous) => ({
-                          ...previous,
-                          [questionIndex]: optionKey,
-                        }))
-                      }
-                      className={`
-                        flex w-full items-center gap-3
-                        rounded-xl border p-3 text-left transition
-                        ${
-                          selected
-                            ? "border-cyan-400 bg-cyan-400/10"
-                            : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
-                        }
-                      `}
-                    >
+    const isCorrect =
+      submitted &&
+      optionKey === mcq.correct_option;
 
-                      <span
-                        className={`
-                          grid h-8 w-8 shrink-0
-                          place-items-center rounded-lg
-                          text-sm font-bold
-                          ${
-                            selected
-                              ? "bg-cyan-400 text-slate-950"
-                              : "bg-white/10 text-slate-300"
-                          }
-                        `}
-                      >
-                        {optionKey}
-                      </span>
+    const isWrongSelected =
+      submitted &&
+      selected &&
+      optionKey !== mcq.correct_option;
 
-                      <span className="text-sm text-slate-300">
-                        {optionText}
-                      </span>
+    return (
+      <button
+        key={optionKey}
+        type="button"
+        disabled={submitted && mcqResult?.passed}
+      onClick={() => {
+  setMcqAnswers((previous) => ({
+    ...previous,
+    [questionIndex]: optionKey,
+  }));
 
-                    </button>
+  // Clear previous submission result when retrying
+  if (mcqResult && !mcqResult.passed) {
+    setMcqResult(null);
+  }
+}}
+        className={`
+          flex w-full items-center gap-3
+          rounded-xl border p-3 text-left transition
 
-                  );
+          ${
+            // AFTER SUBMIT
+            submitted
+              ? isCorrect
+                ? "border-emerald-400 bg-emerald-400/10"
+                : isWrongSelected
+                  ? "border-rose-400 bg-rose-400/10"
+                  : "border-white/10 bg-white/[0.02]"
+              
+              // BEFORE SUBMIT
+              : selected
+                ? "border-cyan-400 bg-cyan-400/10"
+                : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
+          }
+        `}
+      >
 
-                }
-              )}
+        {/* OPTION LETTER */}
+        <span
+          className={`
+            grid h-8 w-8 shrink-0
+            place-items-center rounded-lg
+            text-sm font-bold
+
+            ${
+              submitted
+                ? isCorrect
+                  ? "bg-emerald-400 text-slate-950"
+                  : isWrongSelected
+                    ? "bg-rose-400 text-white"
+                    : "bg-white/10 text-slate-300"
+
+                : selected
+                  ? "bg-cyan-400 text-slate-950"
+                  : "bg-white/10 text-slate-300"
+            }
+          `}
+        >
+          {optionKey}
+        </span>
+
+        {/* OPTION TEXT */}
+        <span
+          className={`
+            text-sm
+
+            ${
+              submitted
+                ? isCorrect
+                  ? "text-emerald-300"
+                  : isWrongSelected
+                    ? "text-rose-300"
+                    : "text-slate-300"
+                : "text-slate-300"
+            }
+          `}
+        >
+          {optionText}
+        </span>
+
+        {/* STATUS */}
+        {submitted && isCorrect && (
+          <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-400" />
+        )}
+
+        {submitted && isWrongSelected && (
+          <XCircle className="ml-auto h-5 w-5 text-rose-400" />
+        )}
+
+      </button>
+    );
+  }
+)}
 
             </div>
 
-          </div>
+  {submitted && mcqAnswers[questionIndex] !== mcq.correct_option && (
+  <div className="mt-4 space-y-2">
 
-        ))}
+    {/* WRONG ANSWER */}
+    <div className="rounded-xl border border-rose-400/20 bg-rose-400/10 p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-rose-400">
+        Your Answer
+      </p>
+
+      <p className="mt-1 text-sm text-rose-200">
+        {mcqAnswers[questionIndex]} ){" "}
+        {mcq.options?.[mcqAnswers[questionIndex]]}
+      </p>
+    </div>
+
+    {/* CORRECT ANSWER */}
+    <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-emerald-400">
+        Correct Answer
+      </p>
+
+      <p className="mt-1 text-sm text-emerald-200">
+        {mcq.correct_option} ){" "}
+        {mcq.options?.[mcq.correct_option]}
+      </p>
+    </div>
+
+  </div>
+)}
+
+                    </div>
+        );
+      })}
 
       </div>
 
@@ -3178,36 +3296,44 @@ const submitMcqs = async () => {
           SUBMIT
       ================================================== */}
 
-      <button
-        type="button"
-        onClick={submitMcqs}
-        disabled={mcqSubmitting}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      {/* ==================================================
+    QUIZ ACTION
+================================================== */}
 
-        {mcqSubmitting ? (
-
-          <>
-
-            <Loader2 className="h-4 w-4 animate-spin" />
-
-            Submitting...
-
-          </>
-
-        ) : (
-
-          <>
-
-            <CheckCircle2 className="h-4 w-4" />
-
-            Submit Answers
-
-          </>
-
-        )}
-
-      </button>
+<button
+  type="button"
+  onClick={submitMcqs}
+  disabled={mcqSubmitting || mcqResult?.passed}
+  className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white transition-all ${
+    mcqResult?.passed
+      ? "cursor-not-allowed bg-emerald-500/20 text-emerald-300"
+      : mcqResult
+        ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:scale-[1.02]"
+        : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:scale-[1.02]"
+  } disabled:cursor-not-allowed disabled:opacity-70`}
+>
+  {mcqSubmitting ? (
+    <>
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Checking Answers...
+    </>
+  ) : mcqResult?.passed ? (
+    <>
+      <CheckCircle2 className="h-4 w-4" />
+      Completed
+    </>
+  ) : mcqResult ? (
+    <>
+      <ArrowLeft className="h-4 w-4 rotate-180" />
+      Retry Quiz
+    </>
+  ) : (
+    <>
+      <CheckCircle2 className="h-4 w-4" />
+      Submit Answers
+    </>
+  )}
+</button>
 
     </div>
 

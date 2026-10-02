@@ -2229,33 +2229,39 @@ useEffect(() => {
     </div>
 
     {/* LOADING */}
-    {workExperienceLoading ? (
-      <div className="mt-6 py-10 text-center">
-        <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-600" />
-      </div>
+{workExperienceLoading ? (
+  <div className="mt-6 py-10 text-center">
+    <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-600" />
+  </div>
 
-    ) : workExperienceError ? (
+) : workExperiences.length === 0 ? (
 
-      <div className="mt-6 rounded-2xl bg-red-50 p-4 text-sm text-red-600">
-        {workExperienceError}
-      </div>
+  /* EMPTY */
+  <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
 
-    ) : workExperiences.length === 0 ? (
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+      <Briefcase className="h-7 w-7" />
+    </div>
 
-      /* EMPTY */
-      <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center">
-        <Briefcase className="mx-auto h-8 w-8 text-slate-400" />
+    <p className="mt-4 text-base font-bold text-slate-800">
+      Add Your Experience
+    </p>
 
-        <p className="mt-3 font-medium text-slate-700">
-          No work experience added yet.
-        </p>
+    <p className="mt-1 text-sm text-slate-500">
+      Add your professional experience to complete your profile.
+    </p>
 
-        <p className="mt-1 text-sm text-slate-500">
-          Add your professional experience to complete your profile.
-        </p>
-      </div>
+   <button
+  type="button"
+  onClick={() => {
+    alert("Please add your work experience.");
+  }}
+>
+</button>
 
-    ) : (
+  </div>
+
+) : (
 
       /* EXPERIENCES */
       <div className="mt-6 space-y-4">
@@ -2306,7 +2312,7 @@ useEffect(() => {
                   </p>
                 </div>
 
-              </div>
+              </div>  
 
               <div className="flex items-center gap-2">
 
