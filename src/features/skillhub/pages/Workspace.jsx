@@ -44,6 +44,14 @@ const LANGS = [
     id: "sql",
     label: "SQL",
   },
+  {
+    id: "react",
+    label: "React",
+  },
+  {
+    id: "sql",
+    label: "SQL",
+  },
   // {
   //   id: "java",
   //   label: "Java ",
@@ -1142,13 +1150,16 @@ const [mcqResult, setMcqResult] = useState(null);
     : codeByCp.__scratch ?? "";
 
   const setActiveCode = (code) => {
-    setCodeByCp((previous) => ({
-      ...previous,
-      [activeCp
-        ? activeCp.id
-        : "__scratch"]: code,
-    }));
-  };
+  const newCode =
+    typeof code === "string"
+      ? code
+      : code?.target?.value ?? "";
+
+  setCodeByCp((previous) => ({
+    ...previous,
+    [activeCp ? activeCp.id : "__scratch"]: newCode,
+  }));
+};
 
   /* =======================================================
      PROGRESS API
@@ -1579,12 +1590,21 @@ const finishVideoManually = async () => {
       error
     );
 
-    toast.error(
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      error?.message ||
-      "Could not complete level"
-    );
+   const detail = error?.response?.data?.detail;
+
+const errorMessage =
+  Array.isArray(detail)
+    ? detail
+        .map((item) => item?.msg || JSON.stringify(item))
+        .join(", ")
+    : typeof detail === "object"
+      ? detail?.msg || JSON.stringify(detail)
+      : detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Could not complete level";
+
+toast.error(errorMessage);
   }
 };
   /* =======================================================

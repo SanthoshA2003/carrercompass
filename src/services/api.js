@@ -598,10 +598,42 @@ studentCourses: async () => {
       .then((r) => r.data),
 
   // Create progress
-  createProgress: (body) =>
-    client
-      .post("/progress", body)
-      .then((r) => r.data),
+createProgress: async (body) => {
+  if (!body?.level_id) {
+    throw new Error("level_id is required to create progress");
+  }
+
+  // Get the level from backend
+  // This gives us the correct course_id for that level
+  const levelResponse = await client.get(
+    `/levels/${body.level_id}`
+  );
+
+  const level = levelResponse.data;
+
+  if (!level?.course_id) {
+    throw new Error(
+      `course_id not found for level ${body.level_id}`
+    );
+  }
+
+  // IMPORTANT:
+  // Ignore any stale/wrong course_id coming from frontend.
+  // Always use course_id belonging to this level.
+  const progressPayload = {
+    ...body,
+    course_id: level.course_id,
+  };
+
+  console.log("CREATE PROGRESS PAYLOAD:", progressPayload);
+
+  const response = await client.post(
+    "/progress",
+    progressPayload
+  );
+
+  return response.data;
+},
 
   // Update existing progress
   updateProgress: (progressId, body) =>
