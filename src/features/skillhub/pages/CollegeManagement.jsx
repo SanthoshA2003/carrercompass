@@ -340,7 +340,7 @@ const handleViewCollege = async (college) => {
       } else if (typeof errorData?.message === "string") {
         message = errorData.message;
       } else if (error?.message) {
-        message = error.message;
+       setError(getErrorMessage(error));
       }
 
       toast.error(message);

@@ -76,6 +76,10 @@ const [cp, setCp] = useState({ order: 1, atSeconds: 5, title: "", scenario: "", 
   const [colleges, setColleges] = useState([]);
   const [loadingColleges, setLoadingColleges] = useState(false);
 
+  const selectedCourse = courses.find((c) => c.id === courseId);
+const checkpointLanguage = (
+  selectedCourse?.language || "python"
+).trim().toLowerCase();
 
   const loadCourses = () => api.courses().then((c) => { setCourses(c); if (!courseId && c[0]) setCourseId(c[0].id); });
   useEffect(() => { loadCourses(); /* eslint-disable-next-line */ }, []);
@@ -97,6 +101,8 @@ const [cp, setCp] = useState({ order: 1, atSeconds: 5, title: "", scenario: "", 
   useEffect(() => {
     loadColleges();
   }, []);
+
+  
 
 useEffect(() => {
   if (!courseId) return;
@@ -373,8 +379,7 @@ toast.success("Level created");
 
         retry_limit: 5,
 
-        language: "python",
-
+language: checkpointLanguage,
         starter_code: {
           code: cp.starter,
         },
@@ -547,7 +552,7 @@ toast.success("Level created");
       } else if (typeof errorData?.message === "string") {
         message = errorData.message;
       } else if (error?.message) {
-        message = error.message;
+      setError(getErrorMessage(error));
       }
 
       toast.error(message);
