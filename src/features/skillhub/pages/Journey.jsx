@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Check, Play, Loader2, Zap, Sparkles } from "lucide-react";
 
@@ -307,8 +311,22 @@ export default function Journey() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
-  const nav = useNavigate();
-  const { courseId } = useParams();
+const nav = useNavigate();
+const location = useLocation();
+
+const { studentId, courseId } = useParams();
+
+const isCollegeAdminView =
+  location.pathname.startsWith("/college-admin/");
+
+  const PageWrapper = ({ children }) =>
+  isCollegeAdminView ? (
+    <div className="min-h-screen bg-slate-950 text-white">
+      {children}
+    </div>
+  ) : (
+    <Shell>{children}</Shell>
+  );
 
   // ==========================================================
   // FETCH JOURNEY
@@ -351,11 +369,11 @@ export default function Journey() {
 
   if (error) {
     return (
-      <Shell>
+      <PageWrapper>
         <div className="grid h-[60vh] place-items-center">
           <p className="text-red-400">{error}</p>
         </div>
-      </Shell>
+      </PageWrapper>
     );
   }
 
@@ -365,11 +383,11 @@ export default function Journey() {
 
   if (!data) {
     return (
-      <Shell>
+      <PageWrapper>
         <div className="grid h-[60vh] place-items-center">
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
         </div>
-      </Shell>
+      </PageWrapper>
     );
   }
 
@@ -378,7 +396,7 @@ export default function Journey() {
   // ==========================================================
 
   return (
-    <Shell>
+    <PageWrapper>
       <div className="relative -m-8 min-h-[calc(100vh-32px)] overflow-hidden">
       
 
@@ -711,6 +729,6 @@ export default function Journey() {
           </motion.div>
         </div>
       </div>
-    </Shell>
+    </PageWrapper>
   );
 }

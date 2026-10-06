@@ -255,47 +255,52 @@ const collegeConnected =
    */
 
   const handleStartCourse = async (course) => {
-    const courseId = course.course_id || course.id || course.courseId;
+  const courseId =
+    course.course_id ||
+    course.id ||
+    course.courseId;
 
-    if (!courseId) {
-      console.error("Course ID not found:", course);
+  if (!courseId) {
+    console.error("Course ID not found:", course);
+    return;
+  }
+
+  // College Admin → selected student's journey
+ if (isCollegeAdminView && studentId) {
+  return;
+}
+
+  // Normal student flow
+  try {
+    setEnrollingCourse(courseId);
+
+    await api.enrollCourse(courseId);
+
+    navigate(`/skillhub/journey/${courseId}`);
+  } catch (error) {
+    console.error(
+      "Course enrollment failed:",
+      error?.response?.data || error
+    );
+
+    const message =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      "Unable to enroll in this course.";
+
+    if (
+      error?.response?.status === 400 ||
+      error?.response?.status === 409
+    ) {
+      navigate(`/skillhub/journey/${courseId}`);
       return;
     }
 
-    try {
-      setEnrollingCourse(courseId);
-
-      console.log("Enrolling student in course:", courseId);
-
-      await api.enrollCourse(courseId);
-
-      console.log("Course enrolled successfully:", courseId);
-
-      // Open the course after successful enrollment
-      navigate(`/skillhub/journey/${courseId}`);
-    } catch (error) {
-      console.error(
-        "Course enrollment failed:",
-        error?.response?.data || error,
-      );
-
-      const message =
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Unable to enroll in this course.";
-
-      // If backend says already enrolled,
-      // still allow the student to open the course.
-      if (error?.response?.status === 400 || error?.response?.status === 409) {
-        navigate(`/skillhub/journey/${courseId}`);
-        return;
-      }
-
-      alert(message);
-    } finally {
-      setEnrollingCourse(null);
-    }
-  };
+    alert(message);
+  } finally {
+    setEnrollingCourse(null);
+  }
+};
 
  return (
   <PageWrapper>
