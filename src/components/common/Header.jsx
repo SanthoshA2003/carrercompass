@@ -70,7 +70,20 @@ export default function Navbar() {
           )}
         </div>
 
+       
+
         <div className="hidden items-center gap-3 lg:flex">
+
+          {!isAuthed && (
+  <Link
+    to="/college-admin/login"
+    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[15px] font-semibold text-blue-600 transition-all hover:bg-blue-100 hover:text-blue-700"
+    data-testid="nav-college-login-button"
+  >
+    <LogIn className="h-4 w-4" />
+    Login as College
+  </Link>
+)}
           <Link
             to="/profile"
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[15px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
@@ -159,6 +172,17 @@ export default function Navbar() {
               >
                 <CircleUserRound className="h-4 w-4" /> My Score
               </Link>
+
+             {!isAuthed && (
+  <Link
+    to="/college-admin/login"
+    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2.5 text-[15px] font-semibold text-blue-600 transition-all hover:border-blue-300 hover:bg-blue-100"
+    data-testid="nav-college-login-button"
+  >
+    <LogIn className="h-4 w-4" />
+    Login as College
+  </Link>
+)}
 
 
               {!isAuthed && (

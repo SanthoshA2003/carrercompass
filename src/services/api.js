@@ -39,6 +39,29 @@ client.interceptors.request.use(
 );
 
 // ==================================================
+// COLLEGE ADMIN AXIOS CLIENT
+// ==================================================
+
+const collegeAdminClient = axios.create({
+  baseURL: API,
+  withCredentials: true,
+});
+
+collegeAdminClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("college_admin_token");
+
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ==================================================
 // RESPONSE INTERCEPTOR
 // ==================================================
 
@@ -709,6 +732,30 @@ createProgress: async (body) => {
       introductionMcqSubmit: (body) =>
   client
     .post("/introduction-mcqs/submit", body)
+    .then((r) => r.data),
+
+   // ==================================================
+// COLLEGE ADMIN PORTAL
+// ==================================================
+
+collegeAdminLogin: (body) =>
+  collegeAdminClient
+    .post("/college-admin/login", body)
+    .then((r) => r.data),
+
+collegeAdminDashboard: () =>
+  collegeAdminClient
+    .get("/college-admin/dashboard")
+    .then((r) => r.data),
+
+collegeAdminStudents: () =>
+  collegeAdminClient
+    .get("/college-admin/students")
+    .then((r) => r.data),
+
+collegeAdminCourses: () =>
+  collegeAdminClient
+    .get("/college-admin/courses")
     .then((r) => r.data),
 
      // ==================================================

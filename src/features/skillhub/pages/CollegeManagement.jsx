@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";import {
+import { useNavigate } from "react-router-dom";
+import {
   Building2,
   Plus,
   Save,
@@ -16,6 +17,7 @@ import { useNavigate } from "react-router-dom";import {
   Pencil,
   MoreVertical,
   Eye,
+  EyeOff,
   X,
   ArrowLeft,
 } from "lucide-react";
@@ -23,7 +25,6 @@ import { api } from "@/services/api";
 
 import Shell from "@/features/skillhub/components/Shell";
 import { toast } from "sonner";
-
 
 const Input = (props) => (
   <input
@@ -87,6 +88,11 @@ const initialForm = {
   website: "",
   email: "",
   phone: "",
+
+  // College Admin Login Credentials
+  adminEmail: "",
+  adminPassword: "",
+
   principalName: "",
   contactPerson: "",
   address: "",
@@ -98,8 +104,6 @@ const initialForm = {
   status: "active",
 };
 
-
-
 export default function CollegeManagement() {
   const navigate = useNavigate();
 
@@ -109,6 +113,7 @@ export default function CollegeManagement() {
   const [editingCollegeId, setEditingCollegeId] = useState(null);
   const [menuCollegeId, setMenuCollegeId] = useState(null);
   const [selectedCollege, setSelectedCollege] = useState(null);
+  
 
   const [colleges, setColleges] = useState([]);
   const [loadingColleges, setLoadingColleges] = useState(false);
@@ -121,29 +126,27 @@ export default function CollegeManagement() {
     }));
   };
 
- useEffect(() => {
-  const handleClickOutside = (event) => {
-    const clickedMenu = event.target.closest("[data-college-menu]");
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const clickedMenu = event.target.closest("[data-college-menu]");
 
-    if (!clickedMenu) {
-      setMenuCollegeId(null);
-    }
-  };
+      if (!clickedMenu) {
+        setMenuCollegeId(null);
+      }
+    };
 
-  document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
 
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, []);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const validateForm = () => {
     if (!form.collegeName.trim()) {
       toast.error("College name is required");
       return false;
     }
-
-
 
     if (!form.email.trim()) {
       toast.error("College email is required");
@@ -240,27 +243,40 @@ export default function CollegeManagement() {
       .join(" ");
   };
 
-const handleViewCollege = async (college) => {
-  // Open modal immediately using the list data
-  setSelectedCollege(college);
-  setMenuCollegeId(null);
-
-  // Fetch latest details in the background
+  const handleViewCollege = async (college) => {
   try {
+    setMenuCollegeId(null);
+
+    // Show the selected college immediately
+    setSelectedCollege(college);
+
+    // Fetch latest college details
     const response = await api.getCollegeById(college.id);
 
-    const latestCollege = response?.data || response;
+    console.log("COLLEGE DETAILS RESPONSE:", response);
 
-    if (latestCollege) {
-      setSelectedCollege(latestCollege);
+    const collegeDetails = response?.data || response;
+
+    if (collegeDetails) {
+      // Merge instead of replacing
+      // This keeps admin_email/admin_password if
+      // they are available in the college list response.
+      setSelectedCollege({
+        ...college,
+        ...collegeDetails,
+      });
     }
   } catch (error) {
-    console.error("Failed to fetch latest college details:", error);
+    console.error(
+      "Failed to fetch college details:",
+      error?.response?.data || error
+    );
 
-    // Modal is already open, so don't show blocking error
-    toast.error("Showing available college details");
+    toast.error("Failed to fetch latest college details");
   }
 };
+
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -277,6 +293,9 @@ const handleViewCollege = async (college) => {
           : null,
         university_affiliation: form.affiliation.trim() || null,
         accreditation: form.accreditation.trim() || null,
+        admin_email: form.adminEmail.trim(),
+        admin_password: form.adminPassword,
+
         email: form.email.trim(),
         phone: form.phone.trim(),
         website: form.website.trim() || null,
@@ -340,7 +359,7 @@ const handleViewCollege = async (college) => {
       } else if (typeof errorData?.message === "string") {
         message = errorData.message;
       } else if (error?.message) {
-       setError(getErrorMessage(error));
+        setError(getErrorMessage(error));
       }
 
       toast.error(message);
@@ -354,32 +373,31 @@ const handleViewCollege = async (college) => {
     toast.success("Form reset successfully");
   };
 
- const filteredColleges = colleges.filter((college) => {
-  const searchValue = searchTerm.toLowerCase().trim();
+  const filteredColleges = colleges.filter((college) => {
+    const searchValue = searchTerm.toLowerCase().trim();
 
-  const collegeName = college.name?.toLowerCase() || "";
-  const collegeCode = college.code?.toLowerCase() || "";
-  const email = college.email?.toLowerCase() || "";
-  const phone = college.phone?.toLowerCase() || "";
-  const city = college.city?.toLowerCase() || "";
-  const state = college.state?.toLowerCase() || "";
-  const address = college.address?.toLowerCase() || "";
-  const collegeType = college.college_type?.toLowerCase() || "";
+    const collegeName = college.name?.toLowerCase() || "";
+    const collegeCode = college.code?.toLowerCase() || "";
+    const email = college.email?.toLowerCase() || "";
+    const phone = college.phone?.toLowerCase() || "";
+    const city = college.city?.toLowerCase() || "";
+    const state = college.state?.toLowerCase() || "";
+    const address = college.address?.toLowerCase() || "";
+    const collegeType = college.college_type?.toLowerCase() || "";
+
+    return (
+      collegeName.includes(searchValue) ||
+      collegeCode.includes(searchValue) ||
+      email.includes(searchValue) ||
+      phone.includes(searchValue) ||
+      city.includes(searchValue) ||
+      state.includes(searchValue) ||
+      address.includes(searchValue) ||
+      collegeType.includes(searchValue)
+    );
+  });
 
   return (
-    collegeName.includes(searchValue) ||
-    collegeCode.includes(searchValue) ||
-    email.includes(searchValue) ||
-    phone.includes(searchValue) ||
-    city.includes(searchValue) ||
-    state.includes(searchValue) ||
-    address.includes(searchValue) ||
-    collegeType.includes(searchValue)
-  );
-});
-
-  return (
-    
     <Shell>
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Page Header */}
@@ -391,20 +409,20 @@ const handleViewCollege = async (college) => {
             </div>
 
             <h1 className="text-3xl font-black tracking-tight text-white">
-  {showForm
-    ? editingCollegeId
-      ? "Update College"
-      : "Add College"
-    : "Colleges"}
-</h1>
+              {showForm
+                ? editingCollegeId
+                  ? "Update College"
+                  : "Add College"
+                : "Colleges"}
+            </h1>
 
-<p className="mt-2 max-w-2xl text-sm text-slate-400">
-  {showForm
-    ? editingCollegeId
-      ? "Update the selected college information."
-      : "Enter the college details to register a new college."
-    : "View and manage all registered colleges."}
-</p>
+            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+              {showForm
+                ? editingCollegeId
+                  ? "Update the selected college information."
+                  : "Enter the college details to register a new college."
+                : "View and manage all registered colleges."}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -444,16 +462,6 @@ const handleViewCollege = async (college) => {
         {!showForm && (
           <section className="space-y-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              {/* <div>
-    <h2 className="text-xl font-bold text-white">
-      Registered Colleges
-    </h2>
-
-    <p className="mt-1 text-sm text-slate-400">
-      View all colleges registered in the system.
-    </p>
-  </div> */}
-
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {/* Search Field */}
                 <div className="relative w-full sm:w-[450px]">
@@ -507,412 +515,456 @@ const handleViewCollege = async (college) => {
               </div>
             ) : (
               <div className="overflow-visible rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/5">
-  {/* Desktop Header */}
-  <div className="hidden grid-cols-[110px_minmax(300px,1.9fr)_minmax(180px,1fr)_150px_minmax(140px,1fr)_60px] gap-4 border-b border-white/10 bg-white/[0.04] px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 md:grid">
-  <div>College Code</div>
-  <div>College Name</div>
-  <div>Email</div>
-  <div>Phone Number</div>
-  <div>Location</div>
-  <div className="text-center">Action</div>
-</div>
+                {/* Desktop Header */}
+                <div className="hidden grid-cols-[110px_minmax(300px,1.9fr)_minmax(180px,1fr)_150px_minmax(140px,1fr)_60px] gap-4 border-b border-white/10 bg-white/[0.04] px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 md:grid">
+                  <div>College Code</div>
+                  <div>College Name</div>
+                  <div>Email</div>
+                  <div>Phone Number</div>
+                  <div>Location</div>
+                  <div className="text-center">Action</div>
+                </div>
 
-  {filteredColleges.map((college) => (
-    <div
-      key={college.id}
-      className="relative border-b border-white/10 px-5 py-4 last:border-b-0 transition hover:bg-white/[0.04]"
-    >
-      {/* Desktop List Row */}
-      <div className="hidden grid-cols-[110px_minmax(300px,1.9fr)_minmax(180px,1fr)_150px_minmax(140px,1fr)_60px] items-center gap-4 md:grid">
-        {/* College Code */}
-        <div>
-          <span className="rounded-md bg-cyan-400/10 px-2 py-1 text-xs font-bold uppercase tracking-wider text-cyan-300">
-            {college.code}
-          </span>
-        </div>
+                {filteredColleges.map((college) => (
+                  <div
+                    key={college.id}
+                    className="relative border-b border-white/10 px-5 py-4 last:border-b-0 transition hover:bg-white/[0.04]"
+                  >
+                    {/* Desktop List Row */}
+                    <div className="hidden grid-cols-[110px_minmax(300px,1.9fr)_minmax(180px,1fr)_150px_minmax(140px,1fr)_60px] items-center gap-4 md:grid">
+                      {/* College Code */}
+                      <div>
+                        <span className="rounded-md bg-cyan-400/10 px-2 py-1 text-xs font-bold uppercase tracking-wider text-cyan-300">
+                          {college.code}
+                        </span>
+                      </div>
 
-        {/* College Name */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
-            <Building2 className="h-5 w-5 text-cyan-400" />
-          </div>
+                      {/* College Name */}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
+                          <Building2 className="h-5 w-5 text-cyan-400" />
+                        </div>
 
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-white">
-              {college.name}
-            </p>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-white">
+                            {college.name}
+                          </p>
 
-            <p className="mt-1 text-xs text-slate-500">
-              {getCollegeTypeLabel(college.college_type)}
-            </p>
-          </div>
-        </div>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {getCollegeTypeLabel(college.college_type)}
+                          </p>
+                        </div>
+                      </div>
 
-        {/* Email */}
-        <div className="min-w-0">
-          <p className="truncate text-sm text-slate-300">
-            {college.email || "Not available"}
-          </p>
-        </div>
+                      {/* Email */}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-slate-300">
+                          {college.email || "Not available"}
+                        </p>
+                      </div>
 
-        {/* Phone */}
-        <div>
-          <p className="text-sm text-slate-300">
-            {college.phone || "Not available"}
-          </p>
-        </div>
+                      {/* Phone */}
+                      <div>
+                        <p className="text-sm text-slate-300">
+                          {college.phone || "Not available"}
+                        </p>
+                      </div>
 
-        {/* Location */}
-<div className="min-w-0">
-  <div className="flex items-start gap-2 text-sm text-slate-300">
-    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                      {/* Location */}
+                      <div className="min-w-0">
+                        <div className="flex items-start gap-2 text-sm text-slate-300">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
 
-    <span className="truncate">
-      {[college.city, college.state]
-        .filter(Boolean)
-        .join(", ") || "Not available"}
-    </span>
-  </div>
-</div>
+                          <span className="truncate">
+                            {[college.city, college.state]
+                              .filter(Boolean)
+                              .join(", ") || "Not available"}
+                          </span>
+                        </div>
+                      </div>
 
-        {/* Three Dot Menu */}
-       <div
-  data-college-menu={college.id}
-  className="relative flex justify-center"
->
-  <button
-    type="button"
-    onClick={() => {
-      setMenuCollegeId((prev) =>
-        prev === college.id ? null : college.id
-      );
-    }}
-    className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
-    aria-label="College actions"
-  >
-    <MoreVertical className="h-5 w-5" />
-  </button>
+                      {/* Three Dot Menu */}
+                      <div
+                        data-college-menu={college.id}
+                        className="relative flex justify-center"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMenuCollegeId((prev) =>
+                              prev === college.id ? null : college.id,
+                            );
+                          }}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                          aria-label="College actions"
+                        >
+                          <MoreVertical className="h-5 w-5" />
+                        </button>
 
-  {menuCollegeId === college.id && (
-    <div className="absolute right-0 top-11 z-30 w-36 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl">
-      <button
-        type="button"
-        onClick={() => {
-          setMenuCollegeId(null);
-          handleViewCollege(college);
-        }}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
-      >
-        <Eye className="h-4 w-4" />
-        View
-      </button>
+                        {menuCollegeId === college.id && (
+                          <div className="absolute right-0 top-11 z-30 w-36 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuCollegeId(null);
+                                handleViewCollege(college);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </button>
 
-      <button
-        type="button"
-        onClick={() => {
-          setMenuCollegeId(null);
-          handleEditCollege(college);
-        }}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
-      >
-        <Pencil className="h-4 w-4" />
-        Edit
-      </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuCollegeId(null);
+                                handleEditCollege(college);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile List Row */}
+                    <div className="flex items-start gap-3 md:hidden">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
+                        <Building2 className="h-5 w-5 text-cyan-400" />
+                      </div>
+
+                      <div
+                        data-college-menu={college.id}
+                        className="min-w-0 flex-1"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-white">
+                              {college.name}
+                            </p>
+
+                            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                              {college.code}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {college.description ||
+                                "No description available"}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMenuCollegeId(
+                                menuCollegeId === college.id
+                                  ? null
+                                  : college.id,
+                              )
+                            }
+                            className="rounded-lg p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                            aria-label="College actions"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <p className="mt-2 break-all text-sm text-slate-400">
+                          {college.email || "No email"}
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-400">
+                          {college.phone || "No phone number"}
+                        </p>
+
+                        <p className="mt-1 flex items-start gap-2 text-sm text-slate-400">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+
+                          <span>
+                            {[college.city, college.state]
+                              .filter(Boolean)
+                              .join(", ") || "No location"}
+                          </span>
+                        </p>
+
+                        {menuCollegeId === college.id && (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewCollege(college)}
+                              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleEditCollege(college);
+                                setMenuCollegeId(null);
+                              }}
+                              className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {selectedCollege && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+                      {/* Modal Header */}
+
+                      <div className="flex items-start justify-between border-b border-white/10 p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
+                            <Building2 className="h-6 w-6 text-cyan-400" />
+                          </div>
+
+                          <div>
+                            <h2 className="text-xl font-bold text-white">
+                              {selectedCollege.name || "College Details"}
+                            </h2>
+
+                            <p className="mt-1 text-sm text-cyan-400">
+                              {selectedCollege.code || "No code"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCollege(null)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                          aria-label="Close college details"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Modal Content */}
+                      <div className="grid gap-5 p-5 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            College Type
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {getCollegeTypeLabel(selectedCollege.college_type)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Status
+                          </p>
+                          <span
+                            className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
+                              selectedCollege.status === "active"
+                                ? "bg-emerald-400/10 text-emerald-300"
+                                : selectedCollege.status === "inactive"
+                                  ? "bg-rose-400/10 text-rose-300"
+                                  : "bg-amber-400/10 text-amber-300"
+                            }`}
+                          >
+                            {selectedCollege.status || "Not available"}
+                          </span>
+                        </div>
+
+                        {/* COLLEGE ADMIN CREDENTIALS */}
+<div className="md:col-span-2">
+  <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05] p-4">
+    <div className="mb-4 flex items-center gap-2">
+      <UserRound className="h-5 w-5 text-cyan-400" />
+      <p className="text-sm font-bold text-white">
+        College Admin Credentials
+      </p>
     </div>
-  )}
-</div>
+
+    <div className="grid gap-4 md:grid-cols-2">
+      {/* ADMIN EMAIL */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Admin Login Email
+        </p>
+
+        <p className="mt-1 break-all text-sm font-semibold text-cyan-300">
+          {selectedCollege.admin_email || "Not available"}
+        </p>
       </div>
 
-      {/* Mobile List Row */}
-      <div className="flex items-start gap-3 md:hidden">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
-          <Building2 className="h-5 w-5 text-cyan-400" />
-        </div>
-
-        <div
-  data-college-menu={college.id}
-  className="min-w-0 flex-1"
->
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
-                {college.name}
-              </p>
-
-              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                {college.code}
-              </p>
-                <p className="mt-1 text-xs text-slate-500">
-    {college.description || "No description available"}
+      {/* ADMIN PASSWORD */}
+     <div>
+  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    Admin Password
   </p>
-            </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setMenuCollegeId(
-                  menuCollegeId === college.id ? null : college.id
-                )
-              }
-              className="rounded-lg p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
-              aria-label="College actions"
-            >
-              <MoreVertical className="h-5 w-5" />
-            </button>
-          </div>
-
-          <p className="mt-2 break-all text-sm text-slate-400">
-            {college.email || "No email"}
-          </p>
-
-          <p className="mt-1 text-sm text-slate-400">
-            {college.phone || "No phone number"}
-          </p>
-
-          <p className="mt-1 flex items-start gap-2 text-sm text-slate-400">
-  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-
-  <span>
-    {[college.city, college.state]
-      .filter(Boolean)
-      .join(", ") || "No location"}
-  </span>
-</p>
-
-          {menuCollegeId === college.id && (
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleViewCollege(college)}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
-              >
-                <Eye className="h-4 w-4" />
-                View
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  handleEditCollege(college);
-                  setMenuCollegeId(null);
-                }}
-                className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  ))}
-  {selectedCollege && (
-    
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-  
-    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
-      {/* Modal Header */}
-      
-      <div className="flex items-start justify-between border-b border-white/10 p-5">
-        <div className="flex items-start gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-cyan-400/20">
-            <Building2 className="h-6 w-6 text-cyan-400" />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-bold text-white">
-              {selectedCollege.name || "College Details"}
-            </h2>
-
-            <p className="mt-1 text-sm text-cyan-400">
-              {selectedCollege.code || "No code"}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCollege(null)}
-          className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          aria-label="Close college details"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Modal Content */}
-      <div className="grid gap-5 p-5 md:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            College Type
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {getCollegeTypeLabel(selectedCollege.college_type)}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Status
-          </p>
-          <span
-            className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
-              selectedCollege.status === "active"
-                ? "bg-emerald-400/10 text-emerald-300"
-                : selectedCollege.status === "inactive"
-                ? "bg-rose-400/10 text-rose-300"
-                : "bg-amber-400/10 text-amber-300"
-            }`}
-          >
-            {selectedCollege.status || "Not available"}
-          </span>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            University Affiliation
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.university_affiliation || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Accreditation
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.accreditation || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Established Year
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.established_year || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Principal / Dean
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.principal_dean_name || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Contact Person
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.contact_person || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Email
-          </p>
-          <p className="mt-1 break-all text-sm text-white">
-            {selectedCollege.email || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Phone
-          </p>
-          <p className="mt-1 text-sm text-white">
-            {selectedCollege.phone || "Not available"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Website
-          </p>
-
-          {selectedCollege.website ? (
-            <a
-              href={selectedCollege.website}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 block break-all text-sm text-cyan-400 hover:text-cyan-300"
-            >
-              {selectedCollege.website}
-            </a>
-          ) : (
-            <p className="mt-1 text-sm text-white">Not available</p>
-          )}
-        </div>
-
-        <div className="md:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Address
-          </p>
-          <p className="mt-1 text-sm leading-6 text-white">
-            {[
-              selectedCollege.address,
-              selectedCollege.city,
-              selectedCollege.state,
-              selectedCollege.country,
-              selectedCollege.pincode,
-            ]
-              .filter(Boolean)
-              .join(", ") || "Not available"}
-          </p>
-        </div>
-
-        <div className="md:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Description
-          </p>
-          <p className="mt-1 text-sm leading-6 text-white">
-            {selectedCollege.description || "No description available"}
-          </p>
-        </div>
-      </div>
-{/* Modal Footer */}
-<div className="flex items-center justify-between border-t border-white/10 p-5">
-
-  {/* Add Student - inside popup, bottom-left */}
-  <button
-    type="button"
-   onClick={() => {
-  window.location.href =
-    `/skillhub/admin/students/import?collegeId=${selectedCollege.id}`;
-}}
-    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:scale-[1.02]"
-  >
-    <Plus className="h-4 w-4" />
-    Add Student
-  </button>
-
-  {/* Close - bottom-right */}
-  <button
-    type="button"
-    onClick={() => setSelectedCollege(null)}
-    className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-  >
-    Close
-  </button>
-
+  <p className="mt-1 break-all text-sm font-semibold text-white">
+    {selectedCollege?.admin_password || "Not available"}
+  </p>
 </div>
     </div>
   </div>
-)}
 </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            University Affiliation
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.university_affiliation ||
+                              "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Accreditation
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.accreditation || "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Established Year
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.established_year ||
+                              "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Principal / Dean
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.principal_dean_name ||
+                              "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Contact Person
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.contact_person || "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Email
+                          </p>
+                          <p className="mt-1 break-all text-sm text-white">
+                            {selectedCollege.email || "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Phone
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedCollege.phone || "Not available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Website
+                          </p>
+
+                          {selectedCollege.website ? (
+                            <a
+                              href={selectedCollege.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 block break-all text-sm text-cyan-400 hover:text-cyan-300"
+                            >
+                              {selectedCollege.website}
+                            </a>
+                          ) : (
+                            <p className="mt-1 text-sm text-white">
+                              Not available
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Address
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-white">
+                            {[
+                              selectedCollege.address,
+                              selectedCollege.city,
+                              selectedCollege.state,
+                              selectedCollege.country,
+                              selectedCollege.pincode,
+                            ]
+                              .filter(Boolean)
+                              .join(", ") || "Not available"}
+                          </p>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Description
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-white">
+                            {selectedCollege.description ||
+                              "No description available"}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Modal Footer */}
+                      <div className="flex items-center justify-between border-t border-white/10 p-5">
+                        {/* Add Student - inside popup, bottom-left */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.href = `/skillhub/admin/students/import?collegeId=${selectedCollege.id}`;
+                          }}
+                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:scale-[1.02]"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Student
+                        </button>
+
+                        {/* Close - bottom-right */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCollege(null)}
+                          className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         )}
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+            autoComplete="off"
+          >
             {/* Basic Details */}
             <Section
               title="Basic College Details"
@@ -928,8 +980,6 @@ const handleViewCollege = async (college) => {
                     placeholder="Example: University College of Engineering"
                   />
                 </div>
-
-               
 
                 <div>
                   <Label>College Type</Label>
@@ -1059,6 +1109,61 @@ const handleViewCollege = async (college) => {
               </div>
             </Section>
 
+            {/* COLLEGE ADMIN CREDENTIALS */}
+            <Section
+              title="College Admin Credentials"
+              description="Create the login credentials that the college administrator will use to access the College Admin Portal."
+              icon={UserRound}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* ADMIN EMAIL */}
+                <div>
+                  <Label required>Admin Login Email</Label>
+
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+
+                    <Input
+                      type="email"
+                      value={form.adminEmail}
+                      onChange={(e) =>
+                        updateField("adminEmail", e.target.value)
+                      }
+                      placeholder="collegeadmin@mymentor.com"
+                      autoComplete="off"
+                      name="college_admin_login_email"
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    This email will be used to log in to the College Admin
+                    Portal.
+                  </p>
+                </div>
+
+                {/* ADMIN PASSWORD */}
+                <div>
+                  <Label required>Admin Password</Label>
+
+                  <Input
+                    type="password"
+                    value={form.adminPassword}
+                    onChange={(e) =>
+                      updateField("adminPassword", e.target.value)
+                    }
+                    placeholder="Enter admin password"
+                    autoComplete="new-password"
+                    name="college_admin_new_password"
+                  />
+
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Use a strong password for the college administrator.
+                  </p>
+                </div>
+              </div>
+            </Section>
+
             {/* Address */}
             <Section
               title="College Address"
@@ -1146,55 +1251,55 @@ const handleViewCollege = async (college) => {
               </div>
             </Section>
 
-          {/* Actions */}
-<div className="flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            {/* Actions */}
+            <div className="flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              {/* Left Side - Reset */}
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </button>
 
-  {/* Left Side - Reset */}
-  <button
-    type="button"
-    onClick={resetForm}
-    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-  >
-    <RotateCcw className="h-4 w-4" />
-    Reset
-  </button>
+              {/* Right Side - Add Package + Save */}
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {/* Add Package */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/skillhub/admin/builder");
+                    window.scrollTo(0, 0);
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-400/20 hover:text-cyan-200"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Package
+                </button>
 
-  {/* Right Side - Add Package + Save */}
-  <div className="flex flex-col gap-3 sm:flex-row">
-
-    {/* Add Package */}
-    <button
-      type="button"
-      onClick={() => {
-        navigate("/skillhub/admin/builder");
-        window.scrollTo(0, 0);
-      }}
-      className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-400/20 hover:text-cyan-200"
-    >
-      <Plus className="h-4 w-4" />
-      Add Package
-    </button>
-
-    {/* Save / Update College */}
-    <button
-      type="submit"
-      disabled={saving}
-      className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {saving ? (
-        editingCollegeId ? "Updating..." : "Saving..."
-      ) : (
-        <>
-          <Save className="h-4 w-4" />
-          {editingCollegeId ? "Update College" : "Save College"}
-        </>
-      )}
-    </button>
-
-  </div>
-</div>
+                {/* Save / Update College */}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? (
+                    editingCollegeId ? (
+                      "Updating..."
+                    ) : (
+                      "Saving..."
+                    )
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      {editingCollegeId ? "Update College" : "Save College"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </form>
-          
         )}
       </div>
     </Shell>

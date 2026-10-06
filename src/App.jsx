@@ -13,7 +13,11 @@ import OrganizationsPage from "@/features/organizations/pages/OrganizationsPage"
 import JobsPage from "@/features/jobs/pages/JobsPage";
 import GoogleCallback from "@/features/auth/pages/GoogleCallback";
 import ProfilePage from "@/features/profile/pages/ProfilePage";
-
+import CollegeAdminLogin from "@/features/CollegeAdmin/pages/CollegeAdminLogin";
+import CollegeAdminDashboard from "@/features/CollegeAdmin/pages/CollegeAdminDashboard";
+import CollegeAdminLayout from "@/features/CollegeAdmin/components/CollegeAdminLayout";
+import CollegeAdminStudents from "@/features/CollegeAdmin/pages/CollegeAdminStudents";
+import CollegeAdminCourses from "@/features/CollegeAdmin/pages/CollegeAdminCourses";
 
 function LandingPage() {
   useEffect(() => {
@@ -51,6 +55,15 @@ function App() {
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/auth/callback" element={<GoogleCallback />} />
+            <Route
+  path="/college-admin/login"
+  element={<CollegeAdminLogin />}
+/>
+<Route path="/college-admin" element={<CollegeAdminLayout />}>
+  <Route path="dashboard" element={<CollegeAdminDashboard />} />
+  <Route path="students" element={<CollegeAdminStudents />} />
+  <Route path="courses" element={<CollegeAdminCourses />} />
+</Route>
             
           </Routes>
         </AuthProvider>
