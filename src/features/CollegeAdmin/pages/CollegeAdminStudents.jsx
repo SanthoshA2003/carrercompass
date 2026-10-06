@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Users,
@@ -20,6 +21,7 @@ const getInitials = (name = "") =>
     .toUpperCase();
 
 export default function CollegeAdminStudents() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -142,10 +144,28 @@ export default function CollegeAdminStudents() {
         {/* STUDENTS */}
         <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filteredStudents.map((student, index) => (
-            <div
-              key={student.id || student.email || index}
-              className="group rounded-2xl border border-white/5 bg-[#080d1d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/20"
-            >
+ <div
+  key={student.id || student.user_id || student.email || index}
+  onClick={() => {
+    const studentId =
+      student.student_id ||
+      student.user_id ||
+      student.id;
+
+    console.log("Selected Student:", student);
+    console.log("Selected Student ID:", studentId);
+
+    if (!studentId) {
+      console.error("Student ID not found:", student);
+      return;
+    }
+
+    navigate(
+      `/college-admin/students/${studentId}/dashboard`
+    );
+  }}
+  className="group cursor-pointer rounded-2xl border border-white/5 bg-[#080d1d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-[#0b1224] active:scale-[0.99]"
+>
               {/* PROFILE */}
               <div className="flex items-center gap-4">
                 <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-sm font-black text-white">

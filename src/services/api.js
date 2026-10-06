@@ -758,17 +758,32 @@ collegeAdminCourses: () =>
     .get("/college-admin/courses")
     .then((r) => r.data),
 
-     // ==================================================
+
+   // ==================================================
 // ADMIN - STUDENT DASHBOARD
 // ==================================================
 
 adminStudentSkillHubDashboard: (studentId) =>
   client
     .get(`/dashboard/student/skillhub/${studentId}`)
-    .then((r) => r.data), 
+    .then((r) => r.data),
 
 adminStudentCourses: (studentId) =>
   client
+    .get(`/admin/students/${studentId}/courses`)
+    .then((r) => r.data),
+
+// ==================================================
+// COLLEGE ADMIN - STUDENT DASHBOARD
+// ==================================================
+
+collegeAdminStudentSkillHubDashboard: (studentId) =>
+  collegeAdminClient
+    .get(`/dashboard/student/skillhub/${studentId}`)
+    .then((r) => r.data),
+
+collegeAdminStudentCourses: (studentId) =>
+  collegeAdminClient
     .get(`/admin/students/${studentId}/courses`)
     .then((r) => r.data),
 

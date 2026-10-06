@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
 import { motion } from "framer-motion";
 
 import {
@@ -29,12 +35,15 @@ const Card = ({ children, className = "" }) => {
   );
 };
 
-export default function Dashboard() {
+export default function Dashboard({ hideShell = false }) {
   const navigate = useNavigate();
 
-  const { studentId } = useParams();
+const { studentId } = useParams();
 
-  const isAdminStudentView = Boolean(studentId);
+const isCollegeAdminView = hideShell;
+
+const isAdminStudentView =
+  Boolean(studentId) && !isCollegeAdminView;
 
   const [data, setData] = useState(null);
   const [collegeCourses, setCollegeCourses] = useState(null);
@@ -47,6 +56,7 @@ export default function Dashboard() {
 
   const [expandedPackage, setExpandedPackage] = useState(null);
   const [enrollingCourse, setEnrollingCourse] = useState(null);
+
 
   /*
    * --------------------------------------------------
@@ -62,9 +72,18 @@ export default function Dashboard() {
 
         console.log("Dashboard Student ID:", studentId);
 
-        const response = isAdminStudentView
-          ? await api.adminStudentSkillHubDashboard(studentId)
-          : await api.studentSkillHubDashboard();
+ let response;
+
+if (isCollegeAdminView && studentId) {
+  response =
+    await api.collegeAdminStudentSkillHubDashboard(studentId);
+} else if (isAdminStudentView && studentId) {
+  response =
+    await api.adminStudentSkillHubDashboard(studentId);
+} else {
+  response =
+    await api.studentSkillHubDashboard();
+}
 
         console.log("=================================");
         console.log("ADMIN STUDENT ID:", studentId);
@@ -91,7 +110,7 @@ export default function Dashboard() {
     };
 
     fetchDashboard();
-  }, [studentId, isAdminStudentView]);
+  }, [studentId, isAdminStudentView, isCollegeAdminView]);
 
   /*
    * --------------------------------------------------
@@ -99,46 +118,73 @@ export default function Dashboard() {
    * --------------------------------------------------
    */
 
-  useEffect(() => {
-    const fetchCollegeCourses = async () => {
-      try {
-        setCoursesLoading(true);
-        setCollegeCoursesError("");
+useEffect(() => {
+  const fetchCollegeCourses = async () => {
 
-        // Backend identifies the student's college
-        // from the authenticated student account.
-        const response = isAdminStudentView
-          ? await api.adminStudentCourses(studentId)
-          : await api.studentCourses();
+    // College Admin student dashboard already
+    // gets courses from the SkillHub dashboard API.
+    if (isCollegeAdminView && studentId) {
+      setCollegeCourses(null);
+      setCoursesLoading(false);
+      return;
+    }
 
-        console.log("=================================");
-        console.log("ADMIN STUDENT ID:", studentId);
-        console.log("ADMIN STUDENT COURSES RESPONSE:", response);
-        console.log("PACKAGE COURSES:", response?.package_courses);
-        console.log("ENROLLED COURSES:", response?.enrolled_courses);
-        console.log("COURSES:", response?.courses);
-        console.log("COLLEGE ID:", response?.college_id);
-        console.log("COLLEGE NAME:", response?.college_name);
-        console.log("=================================");
+    try {
+      setCoursesLoading(true);
+      setCollegeCoursesError("");
 
-        setCollegeCourses(response);
-      } catch (error) {
-        console.error("Student courses error:", error?.response?.data || error);
+      let response;
 
-        setCollegeCoursesError(
-          error?.response?.data?.detail ||
-            error?.response?.data?.message ||
-            "Unable to load college packages",
-        );
-
-        setCollegeCourses(null);
-      } finally {
-        setCoursesLoading(false);
+      if (isCollegeAdminView && studentId) {
+  // College Admin student dashboard already
+  // contains college_packages and continue_courses.
+  setCollegeCourses(null);
+  setCoursesLoading(false);
+  return;
+}else if (isAdminStudentView && studentId) {
+        response =
+          await api.adminStudentCourses(studentId);
+      } else {
+        response = await api.studentCourses();
       }
-    };
 
-    fetchCollegeCourses();
-  }, [studentId, isAdminStudentView]);
+      console.log("COLLEGE COURSES:", response);
+
+      setCollegeCourses(response);
+    } catch (error) {
+      console.error(
+        "Student courses error:",
+        error?.response?.data || error
+      );
+
+      setCollegeCoursesError(
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          "Unable to load college packages"
+      );
+
+      setCollegeCourses(null);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  fetchCollegeCourses();
+}, [studentId, isAdminStudentView, isCollegeAdminView]);
+
+  const PageWrapper = ({ children }) => {
+  if (hideShell) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white">
+        <main className="mx-auto max-w-6xl px-6 py-8">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  return <Shell>{children}</Shell>;
+};
 
   /*
    * --------------------------------------------------
@@ -146,15 +192,17 @@ export default function Dashboard() {
    * --------------------------------------------------
    */
 
-  if (loading) {
-    return (
-      <Shell>
-        <div className="grid h-[60vh] place-items-center">
-          <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-        </div>
-      </Shell>
-    );
-  }
+  
+
+if (loading) {
+  return (
+    <PageWrapper>
+      <div className="grid min-h-[60vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      </div>
+    </PageWrapper>
+  );
+}
 
   /*
    * --------------------------------------------------
@@ -162,8 +210,11 @@ export default function Dashboard() {
    * --------------------------------------------------
    */
 
-  const courses =
-    data?.continue_courses || data?.courses || data?.enrolled_courses || [];
+const courses =
+  data?.continue_courses ||
+  data?.courses ||
+  data?.enrolled_courses ||
+  [];
 
   const achievements = data?.achievements || [];
 
@@ -171,9 +222,10 @@ export default function Dashboard() {
 
   const certificates = data?.certificates || [];
 
-  const collegeConnected = Boolean(
-    collegeCourses?.college_id || collegeCourses?.college_name,
-  );
+const collegeConnected =
+  !isCollegeAdminView &&
+  !isAdminStudentView &&
+  Boolean(localStorage.getItem("student_code"));
 
   const collegeCode = collegeCourses?.college_code || "";
 
@@ -190,7 +242,7 @@ export default function Dashboard() {
    * }
    */
 
-  const packageCourses = collegeCourses?.package_courses || [];
+  const collegePackages = data?.college_packages || [];
 
   const enrolledCourses = collegeCourses?.enrolled_courses || [];
 
@@ -245,13 +297,19 @@ export default function Dashboard() {
     }
   };
 
-  return (
-    <Shell>
-      <div className="mx-auto max-w-6xl space-y-10">
-        {isAdminStudentView && (
+ return (
+  <PageWrapper>
+    <div className="space-y-10">
+        {(isAdminStudentView || isCollegeAdminView) && (
           <button
             type="button"
-            onClick={() => navigate("/skillhub/admin/students")}
+            onClick={() =>
+  navigate(
+    isCollegeAdminView
+      ? "/college-admin/students"
+      : "/skillhub/admin/students"
+  )
+}
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -646,6 +704,209 @@ export default function Dashboard() {
         )}
 
         {/* --------------------------------------------------
+    COLLEGE PACKAGES
+-------------------------------------------------- */}
+
+{isCollegeAdminView && collegePackages.length > 0 && (
+  <section className="space-y-6">
+
+    {/* HEADER */}
+    <div>
+      <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
+        College Learning
+      </p>
+
+      <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+        College Packages
+      </h1>
+
+      <p className="mt-2 text-sm text-slate-400">
+        Courses and packages provided by your college.
+      </p>
+
+      {/* COLLEGE NAME */}
+      {data?.college_name && (
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-300">
+          <Package className="h-4 w-4" />
+          {data.college_name}
+        </div>
+      )}
+
+      {/* COLLEGE CODE */}
+      {data?.college_code && (
+        <p className="mt-2 text-xs text-slate-500">
+          College Code:{" "}
+          <span className="font-semibold text-slate-300">
+            {data.college_code}
+          </span>
+        </p>
+      )}
+    </div>
+
+    {/* PACKAGE CARDS */}
+    <div className="grid gap-5 lg:grid-cols-2">
+      {collegePackages.map((pkg, index) => (
+        <motion.div
+          key={pkg.id || index}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.08 }}
+          className="
+            group
+            relative
+            overflow-hidden
+            rounded-2xl
+            border
+            border-white/10
+            bg-gradient-to-br
+            from-violet-500/20
+            via-cyan-500/10
+            to-slate-900
+            p-5
+            transition
+            hover:border-cyan-400/30
+          "
+        >
+          {/* Glow */}
+          <div
+            className="
+              pointer-events-none
+              absolute
+              -right-16
+              -top-16
+              h-40
+              w-40
+              rounded-full
+              bg-cyan-400/10
+              blur-3xl
+              transition
+              group-hover:bg-cyan-400/20
+            "
+          />
+
+          <div className="relative">
+
+            {/* PACKAGE HEADER */}
+            <div className="flex items-start justify-between gap-4">
+
+              <div className="min-w-0">
+
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
+                  Course Package
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-white">
+                  {pkg.package_name || "College Package"}
+                </h2>
+
+                <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-400">
+                  {pkg.description ||
+                    "Courses provided by your college."}
+                </p>
+
+              </div>
+
+              {/* ICON */}
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-400/10">
+                <Package className="h-5 w-5 text-cyan-400" />
+              </div>
+
+            </div>
+
+            {/* PACKAGE FOOTER */}
+            <div className="mt-5 flex items-center justify-between">
+
+              {/* COURSE COUNT */}
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                {pkg.course_count ?? pkg.courses?.length ?? 0}{" "}
+                {(pkg.course_count ?? pkg.courses?.length ?? 0) === 1
+                  ? "Course"
+                  : "Courses"}
+              </span>
+
+              {/* VIEW COURSES */}
+              <button
+                type="button"
+                onClick={() => {
+                  setExpandedPackage(
+                    expandedPackage === pkg.id
+                      ? null
+                      : pkg.id
+                  );
+                }}
+                className="
+                  inline-flex
+                  items-center
+                  gap-2
+                  rounded-full
+                  bg-white
+                  px-4
+                  py-2
+                  text-xs
+                  font-bold
+                  text-slate-900
+                  transition
+                  hover:scale-105
+                "
+              >
+                {expandedPackage === pkg.id
+                  ? "Hide Courses"
+                  : "View Courses"}
+
+                <ArrowRight
+                  className={`h-4 w-4 transition-transform ${
+                    expandedPackage === pkg.id
+                      ? "rotate-90"
+                      : ""
+                  }`}
+                />
+              </button>
+
+            </div>
+
+            {/* COURSES */}
+            {expandedPackage === pkg.id &&
+              Array.isArray(pkg.courses) &&
+              pkg.courses.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mt-5 space-y-3"
+                >
+                  {pkg.courses.map((course, courseIndex) => (
+                    <div
+                      key={
+                        course.course_id ||
+                        course.id ||
+                        courseIndex
+                      }
+                      className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <p className="text-sm font-bold text-white">
+                        {course.title ||
+                          course.name ||
+                          course.course_name ||
+                          "Course"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {course.description ||
+                          "College assigned course"}
+                      </p>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
+          </div>
+        </motion.div>
+      ))}
+    </div>
+
+  </section>
+)}
+
+        {/* --------------------------------------------------
             CONTINUE LEARNING
         -------------------------------------------------- */}
 
@@ -908,6 +1169,6 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
-    </Shell>
+</PageWrapper>
   );
 }

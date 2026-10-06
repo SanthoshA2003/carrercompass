@@ -46,44 +46,43 @@ export default function Navbar() {
         <Logo />
 
         <div className="hidden items-center gap-1 lg:flex">
-          {navItems.map((item) =>
-            item.href.startsWith("/") ? (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={goProtected(item.href)}
-                className="cursor-pointer rounded-full px-4 py-2 text-[15px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                data-testid={`nav-link-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                {item.label}
-              </a>
-            ) : (
-              <a
-                key={item.label}
-                href={item.href}
-                className="rounded-full px-4 py-2 text-[15px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                data-testid={`nav-link-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                {item.label}
-              </a>
-            )
-          )}
+         {navItems.map((item) =>
+  item.href === "/college-admin/login" ? (
+    <Link
+      key={item.label}
+      to={item.href}
+      onClick={() => setMobileOpen(false)}
+      className="block rounded-xl px-4 py-3 text-[16px] font-medium text-slate-700 transition-colors hover:bg-slate-100"
+    >
+      {item.label}
+    </Link>
+  ) : item.href.startsWith("/") ? (
+    <a
+      key={item.label}
+      href={item.href}
+      onClick={goProtected(item.href)}
+      className="block cursor-pointer rounded-xl px-4 py-3 text-[16px] font-medium text-slate-700 transition-colors hover:bg-slate-100"
+    >
+      {item.label}
+    </a>
+  ) : (
+    <a
+      key={item.label}
+      href={item.href}
+      onClick={() => setMobileOpen(false)}
+      className="block rounded-xl px-4 py-3 text-[16px] font-medium text-slate-700 transition-colors hover:bg-slate-100"
+    >
+      {item.label}
+    </a>
+  )
+)}
         </div>
 
        
 
         <div className="hidden items-center gap-3 lg:flex">
 
-          {!isAuthed && (
-  <Link
-    to="/college-admin/login"
-    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[15px] font-semibold text-blue-600 transition-all hover:bg-blue-100 hover:text-blue-700"
-    data-testid="nav-college-login-button"
-  >
-    <LogIn className="h-4 w-4" />
-    Login as College
-  </Link>
-)}
+         
           <Link
             to="/profile"
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[15px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
@@ -164,6 +163,7 @@ export default function Navbar() {
                   </a>
                 )
               )}
+            
               <Link
                 to="/profile"
                 onClick={() => setMobileOpen(false)}
@@ -172,17 +172,6 @@ export default function Navbar() {
               >
                 <CircleUserRound className="h-4 w-4" /> My Score
               </Link>
-
-             {!isAuthed && (
-  <Link
-    to="/college-admin/login"
-    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2.5 text-[15px] font-semibold text-blue-600 transition-all hover:border-blue-300 hover:bg-blue-100"
-    data-testid="nav-college-login-button"
-  >
-    <LogIn className="h-4 w-4" />
-    Login as College
-  </Link>
-)}
 
 
               {!isAuthed && (

@@ -13,6 +13,7 @@ export const navItems = [
   { label: "Become Mentor", href: "/mentors" },
   { label: "Organisations", href: "/organizations" },
   { label: "Jobs", href: "/jobs" },
+  { label: "College", href: "/college-admin/login" },
 ];
 
 /* Hero floating stats */

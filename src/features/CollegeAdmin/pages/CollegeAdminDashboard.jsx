@@ -344,26 +344,37 @@ if (error) {
   <div key={course.name || course.course_id || index}>
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-bold text-white">
-          {course.name || course.course_name || "Course"}
-        </p>
+       <p className="text-sm font-bold text-white">
+  {course.title || course.name || course.course_name || "Course"}
+</p>
 
         <p className="mt-1 text-xs text-slate-500">
           {course.students ?? course.student_count ?? 0} students
         </p>
       </div>
 
-      <span className="text-sm font-black text-cyan-400">
-        {course.progress ?? course.average_progress ?? 0}%
-      </span>
+     <span className="text-sm font-black text-cyan-400">
+  {course.progress_percentage ?? course.progress ?? course.average_progress ?? 0}%
+</span>
     </div>
 
     <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
       <div
         className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
-        style={{
-          width: `${course.progress ?? course.average_progress ?? 0}%`,
-        }}
+       style={{
+  width: `${Math.min(
+    Math.max(
+      Number(
+        course.progress_percentage ??
+        course.progress ??
+        course.average_progress ??
+        0
+      ),
+      0
+    ),
+    100
+  )}%`,
+}}
       />
     </div>
   </div>

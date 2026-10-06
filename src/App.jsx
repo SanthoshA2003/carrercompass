@@ -18,6 +18,7 @@ import CollegeAdminDashboard from "@/features/CollegeAdmin/pages/CollegeAdminDas
 import CollegeAdminLayout from "@/features/CollegeAdmin/components/CollegeAdminLayout";
 import CollegeAdminStudents from "@/features/CollegeAdmin/pages/CollegeAdminStudents";
 import CollegeAdminCourses from "@/features/CollegeAdmin/pages/CollegeAdminCourses";
+import Dashboard from "@/features/skillhub/pages/Dashboard";
 
 function LandingPage() {
   useEffect(() => {
@@ -62,8 +63,13 @@ function App() {
 <Route path="/college-admin" element={<CollegeAdminLayout />}>
   <Route path="dashboard" element={<CollegeAdminDashboard />} />
   <Route path="students" element={<CollegeAdminStudents />} />
+   <Route
+    path="students/:studentId/dashboard"
+    element={<Dashboard hideShell />}
+  />
   <Route path="courses" element={<CollegeAdminCourses />} />
 </Route>
+
             
           </Routes>
         </AuthProvider>

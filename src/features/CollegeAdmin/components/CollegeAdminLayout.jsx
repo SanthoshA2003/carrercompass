@@ -101,34 +101,62 @@ export default function CollegeAdminLayout() {
         </nav>
 
         {/* ADMIN PROFILE */}
-        <div className="border-t border-white/5 p-4">
-          <div className="mb-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-sm font-black">
-                {(storedUser?.name || "CA").charAt(0).toUpperCase()}
-              </div>
+<div className="border-t border-white/5 p-4">
+  {/* <div className="mb-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3">
+    <div className="flex items-center gap-3">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-sm font-black">
+        {(storedUser?.name || "CA").charAt(0).toUpperCase()}
+      </div>
 
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-white">
-                  {storedUser?.name || "College Admin"}
-                </p>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-white">
+          {storedUser?.name || "College Admin"}
+        </p>
 
-                <p className="truncate text-xs text-slate-500">
-                  {storedUser?.college_name || "College"}
-                </p>
-              </div>
-            </div>
-          </div>
+        <p className="truncate text-xs text-slate-500">
+          {storedUser?.college_name || "College"}
+        </p>
+      </div>
+    </div>
+  </div> */}
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-400 transition hover:bg-white/[0.04] hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
-        </div>
+  {/* HOME */}
+  <button
+    type="button"
+    onClick={() => {
+      localStorage.removeItem("college_admin_token");
+      localStorage.removeItem("college_admin_auth");
+      localStorage.removeItem("college_admin_user");
+
+      navigate("/", { replace: true });
+    }}
+    className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-400 transition hover:bg-white/[0.04] hover:text-white"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-4 w-4"
+    >
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+      <path d="M9 21v-6h6v6" />
+    </svg>
+    Home
+  </button>
+
+  {/* SIGN OUT */}
+  <button
+    type="button"
+    onClick={handleLogout}
+    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-400 transition hover:bg-white/[0.04] hover:text-white"
+  >
+    <LogOut className="h-4 w-4" />
+    Sign out
+  </button>
+</div>
       </aside>
 
       {/* MAIN AREA */}

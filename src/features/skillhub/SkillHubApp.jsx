@@ -32,7 +32,22 @@ import {
 function Guard({ children, admin = false }) {
   const { user, ready } = useAcademyAuth();
 
-  // Loading authentication
+  const collegeAdminToken =
+    localStorage.getItem("college_admin_token");
+
+  const isCollegeAdminStudentView =
+    Boolean(collegeAdminToken) &&
+    window.location.pathname.startsWith(
+      "/skillhub/admin/students/"
+    ) &&
+    window.location.pathname.endsWith("/dashboard");
+
+  // Allow College Admin to view selected student dashboard
+  if (isCollegeAdminStudentView) {
+    return children;
+  }
+
+  // Normal SkillHub auth loading
   if (!ready) {
     return (
       <div className="grid h-screen place-items-center bg-slate-950">
@@ -41,12 +56,12 @@ function Guard({ children, admin = false }) {
     );
   }
 
-  // Not logged in
+  // Normal SkillHub login
   if (!user) {
     return <Navigate to="/skillhub/login" replace />;
   }
 
-  // Admin-only page
+  // Normal Admin-only pages
   if (admin && user.role !== "admin") {
     return <Navigate to="/skillhub" replace />;
   }
