@@ -93,7 +93,22 @@ if (isCollegeAdminView && studentId) {
         console.log("ENROLLED COURSES:", response?.enrolled_courses);
         console.log("=================================");
 
-        setData(response);
+      setData(response);
+
+const firstCourse = response?.continue_courses?.[0];
+
+if (firstCourse?.course_id) {
+  localStorage.setItem(
+    "skillhub_course_id",
+    firstCourse.course_id
+  );
+}
+
+window.dispatchEvent(
+  new Event("skillhub-course-changed")
+);
+
+        
       } catch (error) {
         console.error("Dashboard error:", error?.response?.data || error);
 
@@ -247,6 +262,11 @@ const collegeConnected =
   const enrolledCourses = collegeCourses?.enrolled_courses || [];
 
   const studentCourses = collegeCourses?.courses || [];
+
+  const packageCourses =
+  collegeCourses?.package_courses ||
+  collegeCourses?.courses ||
+  [];
 
   /*
    * --------------------------------------------------

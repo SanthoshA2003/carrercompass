@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import {
   Terminal,
@@ -91,80 +96,123 @@ export default function Shell({
   const loc = useLocation();
   const nav = useNavigate();
 
-  const [courseId, setCourseId] = useState(null);
-  const [loadingCourse, setLoadingCourse] = useState(true);
+  const [courseId, setCourseId] = useState(
+  () => localStorage.getItem("skillhub_course_id")
+);
+
+useEffect(() => {
+  const updateCourseId = () => {
+    setCourseId(
+      localStorage.getItem("skillhub_course_id")
+    );
+  };
+
+  window.addEventListener(
+    "skillhub-course-changed",
+    updateCourseId
+  );
+
+  return () => {
+    window.removeEventListener(
+      "skillhub-course-changed",
+      updateCourseId
+    );
+  };
+}, []);
+
+//   const { courseId: routeCourseId } = useParams();
+
+// const [courseId, setCourseId] = useState(routeCourseId || null);
+
+//   // const [courseId, setCourseId] = useState(null);
+
+//   const [loadingCourse, setLoadingCourse] = useState(true);
 
   /* =======================================================
      GET STUDENT ENROLLED COURSE
   ======================================================= */
 
-  useEffect(() => {
-    const fetchEnrolledCourse = async () => {
-      if (user?.role === "admin") {
-        setLoadingCourse(false);
-        return;
-      }
+// useEffect(() => {
+//   // If already on Journey page, use course ID from URL
+//   if (routeCourseId) {
+//     setCourseId(routeCourseId);
+//     setLoadingCourse(false);
+//     return;
+//   }
 
-      try {
-        setLoadingCourse(true);
+//   const fetchCourse = async () => {
+//     // Admin does not need student course
+//     if (user?.role === "admin") {
+//       setLoadingCourse(false);
+//       return;
+//     }
 
-        const enrolledCourses = await api.enrolledCourses();
+//     try {
+//       setLoadingCourse(true);
 
-        console.log("Enrolled Courses:", enrolledCourses);
+//       // Dashboard API already contains continue_courses
+//       const dashboard = await api.studentSkillHubDashboard();
 
-        if (enrolledCourses?.length > 0) {
-          setCourseId(enrolledCourses[0].course_id);
-        } else {
-          setCourseId(null);
-        }
-      } catch (error) {
-        console.error(
-          "Failed to get enrolled course:",
-          error
-        );
+//       console.log("SkillHub Dashboard:", dashboard);
 
-        setCourseId(null);
-      } finally {
-        setLoadingCourse(false);
-      }
-    };
+//       const firstCourse = dashboard?.continue_courses?.[0];
 
-    fetchEnrolledCourse();
-  }, [user?.role]);
+//       if (firstCourse?.course_id) {
+//         console.log("Journey Course ID:", firstCourse.course_id);
+
+//         setCourseId(firstCourse.course_id);
+//       } else {
+//         console.log("No course found");
+
+//         setCourseId(null);
+//       }
+//     } catch (error) {
+//       console.error(
+//         "Failed to get course:",
+//         error?.response?.data || error
+//       );
+
+//       setCourseId(null);
+//     } finally {
+//       setLoadingCourse(false);
+//     }
+//   };
+
+//   fetchCourse();
+// }, [user?.role, routeCourseId]);
 
   /* =======================================================
      STUDENT NAVIGATION
   ======================================================= */
 
   const studentNav = [
-    {
-      to: "/skillhub",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      end: true,
-    },
+  {
+    to: "/skillhub",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    end: true,
+  },
 
-    {
-      to: courseId
-        ? `/skillhub/journey/${courseId}`
-        : "#",
-      label: "My Journey",
-      icon: Map,
-      // disabled: !courseId,
-    },
+  {
+    to: courseId
+      ? `/skillhub/journey/${courseId}`
+      : "/skillhub",
+    label: "My Journey",
+    icon: Map,
+  },
 
-    {
-  to: "/skillhub/skill-assessment",
-  label: "Skill Assessment",
-  icon: Brain,
-},  
+  {
+    to: "/skillhub/skill-assessment",
+    label: "Skill Assessment",
+    icon: Brain,
+  },
 
-    {
-      to: "/skillhub/certificates",
-      label: "Certificates",
-      icon: Award,
-    },
-  ];
+  {
+    to: "/skillhub/certificates",
+    label: "Certificates",
+    icon: Award,
+  },
+];
 
   /* =======================================================
      SELECT NAVIGATION
@@ -179,10 +227,20 @@ export default function Shell({
      ACTIVE MENU
   ======================================================= */
 
-  const isActive = (item) =>
-    item.end
-      ? loc.pathname === item.to
-      : loc.pathname.startsWith(item.to);
+ const isActive = (item) => {
+  if (!item.to) {
+    return false;
+  }
+
+  if (item.end) {
+    return loc.pathname === item.to;
+  }
+
+  return (
+    loc.pathname === item.to ||
+    loc.pathname.startsWith(`${item.to}/`)
+  );
+};
 
   /* =======================================================
      HOME
