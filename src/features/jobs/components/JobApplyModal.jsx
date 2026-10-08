@@ -259,7 +259,7 @@ if (resumeType === "upload") {
       uploadResponse?.id ||
       null;
 
-    resumeSource = "upload";
+    resumeSource = "new_upload";
   }
 }
       // =======================================================

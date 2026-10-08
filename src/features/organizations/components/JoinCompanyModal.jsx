@@ -68,7 +68,7 @@ const STEPS = [
   },
 ];
 
-export default function JoinCompanyModal({ open, onClose }) {
+export default function JoinCompanyModal({ open, onClose, onCreated }) {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [userLoading, setUserLoading] = useState(false);
@@ -269,11 +269,14 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       };
       console.log("COMPANY JOIN REQUEST:", payload);
 
-      const response = await api.companyJoin(payload);
+    const response = await api.companyJoin(payload);
 
-      console.log("COMPANY JOIN RESPONSE:", response);
+console.log("COMPANY JOIN RESPONSE:", response);
 
-      setDone(true);
+onCreated?.(response);
+
+setDone(true);
+
     } catch (err) {
       console.error("COMPANY JOIN ERROR:", err);
 

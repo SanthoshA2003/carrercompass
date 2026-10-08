@@ -113,6 +113,7 @@ export const AuthProvider = ({ children }) => {
 const [studentCode, setStudentCode] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [verificationId, setVerificationId] = useState("");
 
   const [ob, setOb] = useState({
     name: "",
@@ -269,9 +270,18 @@ const logout = useCallback(() => {
     try {
       const response = await api.otpSend(phone);
 
-      setStep("otp");
+console.log("OTP SEND RESPONSE:", response);
 
-      toast.success(response.demoHint || "OTP sent");
+setVerificationId(
+  response?.verification_id ||
+  response?.verificationId ||
+  ""
+);
+
+setStep("otp");
+
+toast.success(response.demoHint || "OTP sent");
+
     } catch (error) {
       toast.error(
         error.response?.data?.detail || "Could not send OTP"
@@ -292,7 +302,11 @@ const logout = useCallback(() => {
     setLoading(true);
 
     try {
-      const response = await api.otpVerify(phone, otp);
+      const response = await api.otpVerify(
+  phone,
+  otp,
+  verificationId
+);
 
       afterAuth(response);
     } catch (error) {

@@ -174,20 +174,25 @@ linkCollegeByStudentCode: (student_code) =>
       })
       .then((r) => r.data),
 
-  otpSend: (phone) =>
-    client
-      .post("/auth/otp/send", {
-        phone,
-      })
-      .then((r) => r.data),
+// ==================================================
+// OTP AUTHENTICATION
+// ==================================================
 
-  otpVerify: (phone, otp) =>
-    client
-      .post("/auth/otp/verify", {
-        phone,
-        otp,
-      })
-      .then((r) => r.data),
+otpSend: (phone) =>
+  client
+    .post("/auth/otp/send", {
+      phone,
+    })
+    .then((r) => r.data),
+
+otpVerify: (phone, otp, verificationId) =>
+  client
+    .post("/auth/otp/verify", {
+      phone,
+      otp,
+      verification_id: verificationId,
+    })
+    .then((r) => r.data),
 
   // ==================================================
   // COLLEGES

@@ -1028,10 +1028,54 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
             <div className="sm:col-span-4"><Label>Business Scenario</Label><Input value={cp.scenario} onChange={(e) => setCp({ ...cp, scenario: e.target.value })} placeholder="You are building a billing system..." /></div>
             <div className="sm:col-span-4"><Label>Problem Statement</Label><Area rows={2} value={cp.problemStatement} onChange={(e) => setCp({ ...cp, problemStatement: e.target.value })} /></div>
             <div className="sm:col-span-4"><Label>Starter Code (Python)</Label><Area rows={2} value={cp.starter} onChange={(e) => setCp({ ...cp, starter: e.target.value })} className="font-mono" /></div>
-            <div className="sm:col-span-2"><Label>Visible Test — Input</Label><Input value={cp.vin} onChange={(e) => setCp({ ...cp, vin: e.target.value })} placeholder="3 5" /></div>
-            <div className="sm:col-span-2"><Label>Visible Test — Expected</Label><Input value={cp.vout} onChange={(e) => setCp({ ...cp, vout: e.target.value })} placeholder="8" /></div>
-            <div className="sm:col-span-2"><Label>Hidden Test — Input</Label><Input value={cp.hin} onChange={(e) => setCp({ ...cp, hin: e.target.value })} /></div>
-            <div className="sm:col-span-2"><Label>Hidden Test — Expected</Label><Input value={cp.hout} onChange={(e) => setCp({ ...cp, hout: e.target.value })} /></div>
+           <div className="sm:col-span-2">
+  <Label>Visible Test — Input</Label>
+  <Area
+  rows={3}
+  value={cp.vin}
+  onChange={(e) => setCp({ ...cp, vin: e.target.value })}
+  placeholder={`3 5
+10 20
+7 8`}
+/>
+</div>
+
+<div className="sm:col-span-2">
+  <Label>Visible Test — Expected</Label>
+ <Area
+  rows={3}
+  value={cp.vin}
+  onChange={(e) => setCp({ ...cp, vin: e.target.value })}
+  placeholder={`3 5
+10 20
+7 8`}
+/>
+</div>
+
+<div className="sm:col-span-2">
+  <Label>Hidden Test — Input</Label>
+  <Area
+  rows={3}
+  value={cp.vin}
+  onChange={(e) => setCp({ ...cp, vin: e.target.value })}
+  placeholder={`3 5
+10 20
+7 8`}
+/>
+</div>
+
+<div className="sm:col-span-2">
+  <Label>Hidden Test — Expected</Label>
+ <Area
+  rows={3}
+  value={cp.vin}
+  onChange={(e) => setCp({ ...cp, vin: e.target.value })}
+  placeholder={`3 5
+10 20
+7 8`}
+/>
+</div>
+
           </div>
           <button onClick={addCheckpoint} disabled={busy} data-testid="add-checkpoint-btn" className="mt-4 flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white hover:scale-105 transition-transform disabled:opacity-60"><Plus className="h-4 w-4" /> Add Checkpoint</button>
         </Section>

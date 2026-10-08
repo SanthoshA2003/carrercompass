@@ -100,7 +100,16 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      <JoinCompanyModal open={joinOpen} onClose={() => setJoinOpen(false)} />
+<JoinCompanyModal
+  open={joinOpen}
+  onClose={() => setJoinOpen(false)}
+  onCreated={(newCompany) => {
+    setCompanies((prev) => [
+      ...(prev || []),
+      newCompany,
+    ]);
+  }}
+/>
     </div>
   );
 }

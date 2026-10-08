@@ -15,17 +15,48 @@ export default function CreateJobModal({ open, onClose, onCreated }) {
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async (e) => {
-    e.preventDefault();
-    if (!f.title || !f.company || !f.description) return toast.error("Title, company and description are required");
-    setLoading(true);
-    try {
-      const payload = { ...f, skills: f.skills.split(",").map((s) => s.trim()).filter(Boolean) };
-      const res = await api.jobCreate(payload);
-      setDone(true);
-      onCreated?.(res.job);
-    } catch (err) { toast.error(err.response?.data?.detail || "Failed to post job"); }
-    finally { setLoading(false); }
-  };
+  e.preventDefault();
+
+  if (!f.title || !f.company || !f.description) {
+    return toast.error("Title, company and description are required");
+  }
+
+  setLoading(true);
+
+  try {
+    const payload = {
+      title: f.title,
+      company_name: f.company,
+      location: f.location,
+      type: f.type,
+      experience: f.experience,
+      salary: f.salary,
+      skills: f.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      description: f.description,
+      applyEmail: f.applyEmail,
+    };
+
+    const res = await api.jobCreate(payload);
+
+    setDone(true);
+    onCreated?.(res.job);
+  } catch (err) {
+    console.error("Create Job Error:", err?.response?.data || err);
+
+    const detail = err?.response?.data?.detail;
+
+    const message = Array.isArray(detail)
+      ? detail.map((item) => item.msg).join(", ")
+      : detail || "Failed to post job";
+
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const close = () => { setDone(false); setF({ title: "", company: "", location: "", type: "Full-time", experience: "", salary: "", skills: "", description: "", applyEmail: "" }); onClose(); };
 
