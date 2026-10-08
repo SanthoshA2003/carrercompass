@@ -40,14 +40,18 @@ useEffect(() => {
     try {
       const profile = await api.getProfile();
 
-      setProfileName(profile?.full_name || "");
+      console.log("PROFILE FOR NAVBAR:", profile);
+
+      setProfileName(profile?.name || "");
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+      setProfileName("");
     }
   };
 
   loadProfileName();
 }, [isAuthed]);
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
