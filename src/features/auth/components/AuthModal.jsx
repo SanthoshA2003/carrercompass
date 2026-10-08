@@ -238,14 +238,23 @@ const logout = useCallback(() => {
 
   /* ---------------- After Authentication ---------------- */
 
-  const afterAuth = (response) => {
-    localStorage.setItem("dp_token", response.token);
+  const afterAuth = async (response) => {
+  const token = response.access_token || response.token;
 
-    setUser(response.user);
+  if (!token) {
+    throw new Error("Authentication token not received");
+  }
+
+  localStorage.setItem("dp_token", token);
+
+  try {
+    const currentUser = await api.me();
+
+    setUser(currentUser);
 
     if (response.isNewUser) {
       setOb({
-        name: response.user?.name || "",
+        name: currentUser?.name || "",
         dob: "",
       });
 
@@ -253,7 +262,11 @@ const logout = useCallback(() => {
     } else {
       openCollegePopup();
     }
-  };
+  } catch (error) {
+    console.error("Failed to fetch user after OTP:", error);
+    throw error;
+  }
+};
 
   /* ---------------- Send OTP ---------------- */
 
@@ -272,11 +285,19 @@ const logout = useCallback(() => {
 
 console.log("OTP SEND RESPONSE:", response);
 
-setVerificationId(
+const verificationId =
+  response?.data?.verification_id ||
   response?.verification_id ||
   response?.verificationId ||
-  ""
-);
+  "";
+
+console.log("VERIFICATION ID:", verificationId);
+
+if (!verificationId) {
+  throw new Error("Verification ID was not returned by backend");
+}
+
+setVerificationId(verificationId);
 
 setStep("otp");
 
@@ -302,10 +323,17 @@ toast.success(response.demoHint || "OTP sent");
     setLoading(true);
 
     try {
-      const response = await api.otpVerify(
+     const response = await api.otpVerify(
   phone,
   otp,
   verificationId
+);
+
+console.log("OTP VERIFY RESPONSE:", response);
+
+localStorage.setItem(
+  "dp_token",
+  response.access_token
 );
 
       afterAuth(response);

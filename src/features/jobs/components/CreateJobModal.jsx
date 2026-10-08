@@ -28,7 +28,7 @@ export default function CreateJobModal({ open, onClose, onCreated }) {
       title: f.title,
       company_name: f.company,
       location: f.location,
-      type: f.type,
+      job_type: f.type,
       experience: f.experience,
       salary: f.salary,
       skills: f.skills
@@ -36,7 +36,7 @@ export default function CreateJobModal({ open, onClose, onCreated }) {
         .map((s) => s.trim())
         .filter(Boolean),
       description: f.description,
-      applyEmail: f.applyEmail,
+      apply_email: f.applyEmail,
     };
 
     const res = await api.jobCreate(payload);

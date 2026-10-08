@@ -1753,7 +1753,11 @@ const handleEditWorkExperience = (experience) => {
 
         user: {
           name:
-            result?.name || "",
+  result?.full_name ||
+  result?.name ||
+  result?.user?.full_name ||
+  result?.user?.name ||
+  "",
 
           careerGoal:
             result?.career_goal ||
@@ -2866,9 +2870,13 @@ const [saving, setSaving] =
       ...data,
 
       name:
-        currentUser?.name ||
-        data?.name ||
-        "",
+  data?.full_name ||
+  data?.name ||
+  data?.user?.full_name ||
+  data?.user?.name ||
+  currentUser?.full_name ||
+  currentUser?.name ||
+  "",
 
       dob:
         data?.dob || "",
@@ -3035,8 +3043,10 @@ resumeUrl:
             setIsEditing(true);
 
             setP({
-              name:
-                user?.name || "",
+            name:
+  user?.full_name ||
+  user?.name ||
+  "",
 
               dob: "",
 
@@ -3205,8 +3215,10 @@ const handleResumeChange = (event) => {
        PROFILE BODY
     ====================================================== */
 
-    const body = {
-      dob: p.dob || null,
+const body = {
+  name: p.name?.trim() || "",
+
+  dob: p.dob || null,
 
       profile_category:
         p.profileCategory || null,
@@ -3279,10 +3291,10 @@ const handleResumeChange = (event) => {
       ...p,
       ...normalized,
 
-      name:
-        user?.name ||
-        p.name ||
-        "",
+     name:
+  p.name ||
+  user?.name ||
+  "",
 
       dob:
         normalized.dob ||
@@ -3779,14 +3791,13 @@ const handleResumeChange = (event) => {
                 Full Name
               </PLabel>
 
-              <input
-                className={`${pfield} bg-slate-50`}
-                value={
-                  p.name || ""
-                }
-                disabled
-                readOnly
-              />
+             <input
+  className={pfield}
+  value={p.name || ""}
+  onChange={set("name")}
+  placeholder="Enter your full name"
+  data-testid="profile-name"
+/>
             </div>
 
             {/* DOB */}

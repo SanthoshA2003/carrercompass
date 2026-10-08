@@ -21,7 +21,13 @@ const Label = ({ children, req }) => (
   </label>
 );
 
-export default function JobApplyModal({ open, onClose, job }) {
+export default function JobApplyModal({
+  open,
+  onClose,
+  job,
+  onApplicationSubmitted,
+}) {
+  
   // =========================================================
   // RESUME STATE
   // =========================================================
@@ -297,15 +303,17 @@ if (resumeType === "upload") {
         payload
       );
 
-      const response =
-        await api.jobApply(payload);
+      const response = await api.jobApply(payload);
 
-      console.log(
-        "JOB APPLICATION RESPONSE:",
-        response
-      );
+console.log(
+  "JOB APPLICATION RESPONSE:",
+  response
+);
 
-      setDone(true);
+// Update applicant count immediately
+onApplicationSubmitted?.(job.id);
+
+setDone(true);
     } catch (err) {
       console.error(
         "APPLICATION ERROR:",
@@ -475,9 +483,9 @@ if (resumeType === "upload") {
                     </Label>
 
                    <input
-  className={`${field} bg-slate-50`}
+  className={field}
   value={f.name}
-  readOnly
+  onChange={set("name")}
   data-testid="apply-job-name"
 />
                   </div>

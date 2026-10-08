@@ -5,11 +5,14 @@ import { Menu, X, LogIn, CircleUserRound, LogOut } from "lucide-react";
 import { Logo, Magnetic } from "@/features/career/components/landing/primitives";
 import { navItems } from "@/features/career/services/landingData";
 import { useAuth } from "@/features/auth/components/AuthModal";
+import { api } from "@/services/api";
 
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+   const [profileName, setProfileName] = useState("");
+
   const { openAuth, isAuthed, user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -26,6 +29,25 @@ export default function Navbar() {
     );
   }
 };
+
+useEffect(() => {
+  const loadProfileName = async () => {
+    if (!isAuthed) {
+      setProfileName("");
+      return;
+    }
+
+    try {
+      const profile = await api.getProfile();
+
+      setProfileName(profile?.full_name || "");
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
+
+  loadProfileName();
+}, [isAuthed]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -93,7 +115,7 @@ export default function Navbar() {
           {isAuthed ? (
             <div className="flex items-center gap-2">
               <span className="max-w-[140px] truncate rounded-full bg-slate-100 px-4 py-2 text-[15px] font-semibold text-slate-800" data-testid="nav-user-name">
-                {user?.name?.split(" ")[0] || "Account"}
+                {profileName?.split(" ")[0] || user?.name?.split(" ")[0] || "Account"}
               </span>
               <button
                 onClick={logout}
@@ -195,7 +217,11 @@ export default function Navbar() {
                   data-testid="nav-mobile-logout-button"
                 >
                   <LogOut className="h-4 w-4" />
-                  Logout ({user?.name?.split(" ")[0] || "Account"})
+                  Logout (
+  {profileName?.split(" ")[0] ||
+    user?.name?.split(" ")[0] ||
+    "Account"}
+)
                 </button>
               ) : (
                 <button

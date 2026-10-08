@@ -237,58 +237,142 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   };
 
   const submit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validateStep()) return;
+  if (!validateStep()) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const payload = {
-        name: f.companyName.trim(),
-        industry: f.industry,
-        logo: f.logo ? f.logo.name : "",
-        website: f.website.trim(),
-        location: f.location.trim(),
-        size: f.size,
+  try {
+    // =====================================================
+    // 1. UPLOAD COMPANY LOGO
+    // =====================================================
 
-        open_roles: 0,
-        about: f.about.trim(),
+    let logoUrl = "";
 
-        contact_person_name: f.contactName.trim(),
-        contact_email: f.contactEmail.trim(),
-        contact_phone: f.contactPhone.trim(),
-        contact_role: f.contactRole.trim(),
+    if (f.logo) {
+      console.log("Uploading company logo:", f.logo);
 
-        // Admin account
-       admin_official_email: f.adminEmail.trim(),
-       password: f.password,
+      const uploadResponse = await api.upload(f.logo);
 
-        status: "pending",
-        verified: false,
-      };
-      console.log("COMPANY JOIN REQUEST:", payload);
-
-    const response = await api.companyJoin(payload);
-
-console.log("COMPANY JOIN RESPONSE:", response);
-
-onCreated?.(response);
-
-setDone(true);
-
-    } catch (err) {
-      console.error("COMPANY JOIN ERROR:", err);
-
-      toast.error(
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        "Submission failed"
+      console.log(
+        "COMPANY LOGO UPLOAD RESPONSE:",
+        uploadResponse
       );
-    } finally {
-      setLoading(false);
+
+      logoUrl =
+        uploadResponse?.url ||
+        uploadResponse?.file_url ||
+        uploadResponse?.path ||
+        "";
+
+      if (!logoUrl) {
+        throw new Error(
+          "Company logo upload succeeded, but no image URL was returned."
+        );
+      }
     }
-  };
+
+    // =====================================================
+    // 2. CREATE COMPANY PAYLOAD
+    // =====================================================
+
+    const payload = {
+      name: f.companyName.trim(),
+
+      industry: f.industry,
+
+      logo: logoUrl,
+
+      website: f.website.trim(),
+
+      location: f.location.trim(),
+
+      size: f.size,
+
+      open_roles: 0,
+
+      about: f.about.trim(),
+
+      // ---------------------------------------------------
+      // CONTACT PERSON
+      // ---------------------------------------------------
+
+      contact_person_name: f.contactName.trim(),
+
+      contact_email: f.contactEmail.trim(),
+
+      contact_phone: f.contactPhone.trim(),
+
+      contact_role: f.contactRole.trim(),
+
+      // ---------------------------------------------------
+      // ADMIN ACCOUNT
+      // ---------------------------------------------------
+
+      admin_official_email: f.adminEmail.trim(),
+
+      password: f.password,
+
+      // ---------------------------------------------------
+      // STATUS
+      // ---------------------------------------------------
+
+      status: "pending",
+
+      verified: false,
+    };
+
+    console.log(
+      "COMPANY JOIN REQUEST:",
+      payload
+    );
+
+    // =====================================================
+    // 3. CREATE COMPANY
+    // =====================================================
+
+    const response = await api.companyJoin(
+      payload
+    );
+
+    console.log(
+      "COMPANY JOIN RESPONSE:",
+      response
+    );
+
+    // =====================================================
+    // 4. UPDATE COMPANY LIST
+    // =====================================================
+
+    onCreated?.(response);
+
+    // =====================================================
+    // 5. SHOW SUCCESS
+    // =====================================================
+
+    setDone(true);
+
+  } catch (err) {
+
+    console.error(
+      "COMPANY JOIN ERROR:",
+      err
+    );
+
+    toast.error(
+      err?.response?.data?.detail ||
+      err?.response?.data?.message ||
+      err?.message ||
+      "Submission failed"
+    );
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   const close = () => {
   setDone(false);
