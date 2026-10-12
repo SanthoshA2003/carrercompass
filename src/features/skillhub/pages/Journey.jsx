@@ -111,11 +111,20 @@ function GameLevel({ node, index, onClick }) {
 
   const levelTitle = getLevelTitle(node);
 
-  const completedCheckpoints = node.completed_checkpoints || 0;
+const checkpoints = Array.isArray(node.checkpoints)
+  ? node.checkpoints
+  : [];
 
-  const totalCheckpoints = node.total_checkpoints || 0;
+const completedCheckpoints = Number(
+  node.completed_checkpoints ??
+  checkpoints.filter((checkpoint) => checkpoint.completed).length
+);
 
-  const xp = node.xp || 0;
+const totalCheckpoints = Number(
+  node.total_checkpoints ?? checkpoints.length
+);
+
+
 
   const progress =
     totalCheckpoints > 0
@@ -535,25 +544,7 @@ function GameLevel({ node, index, onClick }) {
             {completedCheckpoints}/{totalCheckpoints}
           </span>
 
-          <span
-            className="
-              text-slate-700
-            "
-          >
-            •
-          </span>
-
-          <span
-            className={
-              locked
-                ? "text-slate-700"
-                : completed
-                  ? "text-orange-400"
-                  : "text-cyan-400"
-            }
-          >
-            {xp} XP
-          </span>
+       
         </div>
 
         {/* Progress */}
