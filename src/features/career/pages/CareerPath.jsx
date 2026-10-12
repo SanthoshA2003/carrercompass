@@ -83,6 +83,11 @@ const CHIPS = [
 const API_BASE_URL =
   process.env.REACT_APP_BACKEND_URL ||
   "https://mymentor-api.onrender.com";
+  
+
+  const CAREERCOMPASS_API_URL =
+  process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+  "https://api.carrercompass.com";
 
 // ============================================================
 // TOKEN

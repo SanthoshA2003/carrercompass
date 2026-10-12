@@ -20,6 +20,8 @@ import AdminCourseLevels from "@/features/skillhub/pages/AdminCourseLevels";
 import CollegeManagement from "@/features/skillhub/pages/CollegeManagement";
 import AdminSkillAssessment from "@/features/skillhub/pages/AdminSkillAssessment";
 import StudentImport from "./pages/StudentImport";
+import CoursePage from "@/features/skillhub/pages/CoursePage";
+
 import {
   AdminStudents,
   Certificates,
@@ -139,6 +141,19 @@ export default function SkillHubApp() {
             </Guard>
           }
         />
+
+        {/* ==============================
+    STUDENT COURSES
+============================== */}
+
+<Route
+  path="courses"
+  element={
+    <Guard>
+      <CoursePage />
+    </Guard>
+  }
+/>
 
         <Route
   path="skill-assessment"

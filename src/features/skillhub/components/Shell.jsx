@@ -201,6 +201,12 @@ useEffect(() => {
     icon: Map,
   },
 
+   {
+    to: "/skillhub/courses",
+    label: "Courses",
+    icon: BookOpen,
+  },
+
   {
     to: "/skillhub/skill-assessment",
     label: "Skill Assessment",

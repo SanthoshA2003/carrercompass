@@ -6,6 +6,29 @@ import { api } from "@/services/api";
 import { Logo } from "@/features/career/components/landing/primitives";
 import MentorApplyModal from "@/features/mentors/components/MentorApplyModal";
 
+
+
+const normalizeMentor = (m) => ({
+  ...m,
+  id: m.id ?? m._id,
+  name: m.name ?? "",
+  role: m.role ?? "",
+  company: m.company ?? "",
+  industry: m.industry ?? "",
+  img: m.image_url ?? m.img ?? "",
+  exp: Number(m.experience_years ?? m.experienceYears ?? m.exp ?? 0),
+  skills: Array.isArray(m.skills)
+    ? m.skills
+    : typeof m.skills === "string"
+      ? m.skills.split(",").map((s) => s.trim()).filter(Boolean)
+      : [],
+  rating: Number(m.rating ?? 0),
+  price: Number(m.price ?? 0),
+  availability: m.availability ?? "Not specified",
+  verified: Boolean(m.verified),
+});
+
+
 export default function MentorsPage() {
   const navigate = useNavigate();
   const [mentors, setMentors] = useState(null);
@@ -15,16 +38,75 @@ export default function MentorsPage() {
   const [sort, setSort] = useState("rating");
   const [applyOpen, setApplyOpen] = useState(false);
 
-  useEffect(() => { api.mentorIndustries().then(setIndustries).catch(() => {}); }, []);
-  useEffect(() => { setMentors(null); api.mentorsList(industry).then(setMentors).catch(() => setMentors([])); }, [industry]);
+  const refreshMentors = async () => {
+  try {
+    const data = await api.mentorsList(industry);
 
-  const filtered = useMemo(() => {
-    let list = (mentors || []).filter((m) =>
-      !q || m.name.toLowerCase().includes(q.toLowerCase()) || m.role.toLowerCase().includes(q.toLowerCase()) ||
-      m.company.toLowerCase().includes(q.toLowerCase()) || (m.skills || []).some((s) => s.toLowerCase().includes(q.toLowerCase())));
-    list = [...list].sort((a, b) => sort === "rating" ? b.rating - a.rating : sort === "priceLow" ? a.price - b.price : sort === "priceHigh" ? b.price - a.price : b.exp - a.exp);
-    return list;
-  }, [mentors, q, sort]);
+    const list = Array.isArray(data)
+      ? data
+      : data?.mentors ?? data?.items ?? [];
+
+    setMentors(list.map(normalizeMentor));
+  } catch (error) {
+    console.error("Failed to refresh mentors:", error);
+  }
+};
+
+  useEffect(() => { api.mentorIndustries().then(setIndustries).catch(() => {}); }, []);
+
+useEffect(() => {
+  let active = true;
+
+  setMentors(null);
+
+  api.mentorsList(industry)
+    .then((data) => {
+      if (!active) return;
+
+      const list = Array.isArray(data)
+        ? data
+        : data?.mentors ?? data?.items ?? [];
+
+      setMentors(list.map(normalizeMentor));
+    })
+    .catch((error) => {
+      console.error("Failed to load mentors:", error);
+      if (active) setMentors([]);
+    });
+
+  return () => {
+    active = false;
+  };
+}, [industry]);
+
+
+
+const filtered = useMemo(() => {
+  const query = q.toLowerCase();
+
+  let list = (mentors || []).filter((m) => {
+    const searchable = [
+      m.name,
+      m.role,
+      m.company,
+      ...(m.skills || []),
+    ];
+
+    return !query || searchable.some((value) =>
+      String(value ?? "").toLowerCase().includes(query)
+    );
+  });
+
+  list = [...list].sort((a, b) => {
+    if (sort === "rating") return b.rating - a.rating;
+    if (sort === "priceLow") return a.price - b.price;
+    if (sort === "priceHigh") return b.price - a.price;
+    return b.exp - a.exp;
+  });
+
+  return list;
+}, [mentors, q, sort]);
+
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -97,10 +179,24 @@ export default function MentorsPage() {
                 whileHover={{ y: -6 }} className="group relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-soft transition-shadow hover:shadow-large" data-testid={`mentor-card-${i}`}>
                 <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/15 to-cyan-400/10 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
                 <div className="relative flex items-center gap-4">
-                  <div className="relative">
-                    <img src={m.img} alt={m.name} loading="lazy" className="h-16 w-16 rounded-2xl object-cover" />
-                    <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
-                  </div>
+                  
+<div className="relative shrink-0">
+  <div
+    className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-xl font-bold text-white shadow-sm"
+    aria-label={`${m.name} initials`}
+  >
+    {m.name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0].toUpperCase())
+      .slice(0, 2)
+      .join("")}
+  </div>
+
+  <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
+</div>
+
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5"><h3 className="truncate text-lg font-bold text-slate-900">{m.name}</h3>{m.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" />}</div>
                     <p className="text-[13px] text-slate-500">{m.role} · {m.company}</p>
@@ -135,7 +231,11 @@ export default function MentorsPage() {
         </div>
       </div>
 
-      <MentorApplyModal open={applyOpen} onClose={() => setApplyOpen(false)} />
+<MentorApplyModal
+  open={applyOpen}
+  onClose={() => setApplyOpen(false)}
+  onApplicationSuccess={refreshMentors}
+/>
     </div>
   );
 }

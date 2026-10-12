@@ -341,7 +341,7 @@ otpVerify: (phone, otp, verificationId) =>
 
   mentorApply: (body) =>
     client
-      .post("/mentors/apply", body)
+      .post("/mentors", body)
       .then((r) => r.data),
 
   mentorGet: (id) =>

@@ -706,15 +706,16 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
                         <div>
                           <Label req>Contact Email</Label>
 
-                          <input
-                            type="email"
-                            className={field}
-                            value={f.contactEmail}
-                            readOnly
-                            disabled
-                            placeholder="Loading email..."
-                            data-testid="admin-email"
-                          />
+                         
+<input
+  type="email"
+  className={field}
+  value={f.contactEmail}
+  onChange={set("contactEmail")}
+  placeholder="contact@company.com"
+  data-testid="admin-email"
+/>
+
                         </div>
 
                         <div>

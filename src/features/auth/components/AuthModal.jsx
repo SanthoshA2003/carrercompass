@@ -38,7 +38,9 @@ export const useAuth = () => useContext(AuthContext);
 /* ---------------- Google Login ---------------- */
 
 const handleGoogleLogin = () => {
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl =
+  process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+  process.env.REACT_APP_BACKEND_URL;
 
   if (!backendUrl) {
     toast.error("Backend URL is not configured");
@@ -52,6 +54,7 @@ const handleGoogleLogin = () => {
     "http://localhost:3000",
     "https://careercampus-bd89.onrender.com",
     "https://carrercompass-n2ms.onrender.com",
+    "https://carrercompass.com",
   ];
 
   if (!allowedFrontends.includes(frontendUrl)) {

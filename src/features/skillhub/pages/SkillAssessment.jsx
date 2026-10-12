@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion"; 
 import {
   ArrowLeft,
   ArrowRight,
@@ -605,9 +606,7 @@ const SECTIONS = Object.entries(DUMMY_ASSESSMENTS).map(
 // ======================================================
 
 export default function SkillAssessment() {
-  const [selectedSection, setSelectedSection] = useState(
-    "technical-skills"
-  );
+  const [selectedSection, setSelectedSection] = useState(null);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
@@ -617,14 +616,51 @@ export default function SkillAssessment() {
 
   const [runMessage, setRunMessage] = useState("");
 
-  const section = DUMMY_ASSESSMENTS[selectedSection];
+  const [languageFilter, setLanguageFilter] = useState("All");
+const [difficultyFilter, setDifficultyFilter] = useState("All");
 
-  const question = section.questions[currentQuestion];
+  const section = selectedSection
+  ? DUMMY_ASSESSMENTS[selectedSection]
+  : null;
+
+const question = section?.questions[currentQuestion];
+
+const allChallenges = SECTIONS.flatMap((section) =>
+  section.questions.map((question, index) => ({
+    ...question,
+    sectionId: section.id,
+    sectionTitle: section.title,
+    questionIndex: index,
+  }))
+);
+
+const filteredChallenges = allChallenges.filter((challenge) => {
+  const matchesLanguage =
+    languageFilter === "All" ||
+    challenge.language === languageFilter;
+
+  const matchesDifficulty =
+    difficultyFilter === "All" ||
+    challenge.difficulty === difficultyFilter;
+
+  return matchesLanguage && matchesDifficulty;
+});
+
+const dailyChallenge =
+  allChallenges[
+    Math.floor(Date.now() / 86400000) % allChallenges.length
+  ];
+
+const openChallenge = (challenge) => {
+  setSelectedSection(challenge.sectionId);
+  setCurrentQuestion(challenge.questionIndex);
+  setCode("");
+  setRunMessage("");
+};
 
   // Initialize code whenever question changes
   const currentCode =
-    code ||
-    question.starterCode;
+  code || question?.starterCode || "";
 
   // ====================================================
   // SELECT SECTION
@@ -736,9 +772,101 @@ const handlePrevious = () => {
     );
   };
 
+  if (!selectedSection) {
   return (
-  <Shell>
-    <div className="flex h-[calc(100vh-80px)] min-h-0 flex-col overflow-hidden bg-[#020617]">
+    <Shell>
+      <div className="min-h-[calc(100vh-80px)] space-y-8 bg-[#020617] p-6 lg:p-2">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-widest text-cyan-400">
+            Test Your Skills
+          </p>
+
+          <h1 className="mt-3 text-3xl font-black text-white">
+            Skill Assessment
+          </h1>
+
+          <p className="mt-3 text-slate-400">
+            Choose a category to start your assessment.
+          </p>
+        </div>
+
+
+        
+
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {SECTIONS.map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.08 }}
+                className="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/10 via-violet-500/10 to-slate-900 p-6"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
+                  <Icon className="h-6 w-6" />
+                </div>
+
+                <h2 className="mt-5 text-xl font-bold text-white">
+                  {item.title}
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-slate-400">
+                  {item.description}
+                </p>
+
+                <div className="mt-5 flex justify-between text-sm text-slate-400">
+                  <span>{item.questions.length} Questions</span>
+                  <span>
+                    {item.questions.reduce(
+                      (total, q) => total + q.points,
+                      0
+                    )} Points
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleSectionChange(item.id)}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-slate-950 hover:bg-cyan-100"
+                >
+                  <Play className="h-4 w-4" />
+                  Start Assessment
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+ 
+  return (
+    <Shell>
+      <div className="flex h-[calc(100vh-80px)] min-h-0 flex-col overflow-hidden bg-[#020617]">
+
+        {/* Back to Sections */}
+        <div className="shrink-0 border-b border-white/10 bg-[#0b1120] px-5 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedSection(null);
+              setCurrentQuestion(0);
+              setCode("");
+              setRunMessage("");
+            }}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Sections
+          </button>
+        </div>
+
 
       {/* ==================================================
           TOP ASSESSMENT HEADER

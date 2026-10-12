@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Loader2, CheckCircle2, ArrowRight, Briefcase, AlertCircle } from "lucide-react";
 import { api } from "@/services/api";
@@ -9,8 +9,35 @@ const INDUSTRIES = ["Technology", "Healthcare", "Finance", "Government", "Design
 const field = "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 const Label = ({ children, req }) => <label className="mb-1.5 block text-sm font-semibold text-slate-700">{children}{req && <span className="text-blue-600"> *</span>}</label>;
 
-export default function MentorApplyModal({ open, onClose }) {
-  const [f, setF] = useState({ name: "", email: "", phone: "", role: "", company: "", industry: "", experienceYears: "", skills: "", languages: "", linkedin: "", bio: "", motivation: "" });
+const initialForm = {
+  name: "",
+  email: "",
+  phone: "",
+  role: "",
+  company: "",
+  industry: "",
+  experienceYears: "",
+  skills: "",
+  languages: "",
+  linkedin: "",
+  bio: "",
+  motivation: "",
+};
+
+export default function MentorApplyModal({
+  open,
+  onClose,
+  onApplicationSuccess,
+}) {
+const [f, setF] = useState({ ...initialForm });
+
+useEffect(() => {
+  if (!open) {
+    setF({ ...initialForm });
+    setDone(false);
+  }
+}, [open]);
+
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
@@ -24,14 +51,67 @@ export default function MentorApplyModal({ open, onClose }) {
     if (yrs < 5) return toast.error("Mentors need a minimum of 5 years of experience in one industry.");
     setLoading(true);
     try {
-      await api.mentorApply({ ...f, experienceYears: yrs });
-      setDone(true);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Submission failed");
-    } finally { setLoading(false); }
+
+const payload = {
+  name: f.name,
+  email: f.email,
+  phone: f.phone,
+  role: f.role,
+  company: f.company,
+  industry: f.industry,
+  experience_years: yrs,
+  skills: f.skills
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean),
+  languages: f.languages,
+  linkedin: f.linkedin,
+  bio: f.bio,
+  motivation: f.motivation,
+};
+
+await api.mentorApply(payload);
+
+toast.success("Mentor application submitted successfully!");
+
+await onApplicationSuccess?.();
+
+setDone(true);
+    
+} catch (err) {
+  const detail = err.response?.data?.detail;
+
+  let message = "Submission failed. Please try again.";
+
+  if (typeof detail === "string") {
+    message = detail;
+  } else if (Array.isArray(detail)) {
+    message = detail
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item?.msg || "Invalid input"
+      )
+      .join(", ");
+  } else if (detail && typeof detail === "object") {
+    message = detail.msg || detail.message || message;
+  }
+
+  toast.error(message);
+  console.error("Mentor application error:", err.response?.data || err);
+} finally {
+  setLoading(false);
+}
+
   };
 
-  const close = () => { setDone(false); onClose(); };
+  
+
+const close = () => {
+  setF({ ...initialForm });
+  setDone(false);
+  onClose();
+};
 
   return (
     <AnimatePresence>

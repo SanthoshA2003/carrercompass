@@ -21,6 +21,7 @@ import CollegeAdminCourses from "@/features/CollegeAdmin/pages/CollegeAdminCours
 import Dashboard from "@/features/skillhub/pages/Dashboard";
 import Journey from "@/features/skillhub/pages/Journey";
 
+
 function LandingPage() {
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
