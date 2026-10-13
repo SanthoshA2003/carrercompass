@@ -1,70 +1,70 @@
+
 import axios from "axios";
 
-const MYMENTOR_API_URL =
-  process.env.REACT_APP_BACKEND_URL;
+// ==================================================
+// BACKEND URLS
+// ==================================================
 
+const MYMENTOR_API_URL = process.env.REACT_APP_BACKEND_URL;
 const CAREERCOMPASS_API_URL =
   process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL;
 
-const API_BASE_URL = MYMENTOR_API_URL;
-
-if (!API_BASE_URL) {
-  console.error("REACT_APP_BACKEND_URL is not configured");
-}
-
-const API = `${API_BASE_URL}/api`;
-
-// Used by the Google OAuth redirect. Keep this on the same frontend origin.
-const frontendUrl = window.location.origin;
+const MYMENTOR_API = `${MYMENTOR_API_URL}/api`;
+const CAREERCOMPASS_API = `${CAREERCOMPASS_API_URL}/api`;
+const API = MYMENTOR_API;
 
 // ==================================================
-// AXIOS CLIENT
+// AXIOS CLIENTS
 // ==================================================
 
+// Render: MyMentor APIs
 const client = axios.create({
-  baseURL: API,
+  baseURL: MYMENTOR_API,
+  withCredentials: true,
+});
+
+// VPS: CareerCompass APIs
+export const careerCompassClient = axios.create({
+  baseURL: CAREERCOMPASS_API,
+  withCredentials: true,
+});
+
+// Render: College Admin APIs
+const collegeAdminClient = axios.create({
+  baseURL: MYMENTOR_API,
   withCredentials: true,
 });
 
 // ==================================================
-// JWT TOKEN INTERCEPTOR
+// JWT INTERCEPTORS
 // ==================================================
+
+const addToken = (tokenKey) => (config) => {
+  const token = localStorage.getItem(tokenKey);
+
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+};
+
+const handleRequestError = (error) => Promise.reject(error);
 
 client.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("dp_token");
-
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
+  addToken("dp_token"),
+  handleRequestError
 );
 
-// ==================================================
-// COLLEGE ADMIN AXIOS CLIENT
-// ==================================================
-
-const collegeAdminClient = axios.create({
-  baseURL: API,
-  withCredentials: true,
-});
+careerCompassClient.interceptors.request.use(
+  addToken("dp_token"),
+  handleRequestError
+);
 
 collegeAdminClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("college_admin_token");
-
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
+  addToken("college_admin_token"),
+  handleRequestError
 );
 
 // ==================================================
@@ -85,26 +85,30 @@ client.interceptors.response.use(
   }
 );
 
-
-
-
 // ==================================================
-// GOOGLE LOGIN
+// GOOGLE LOGIN: VPS
 // ==================================================
 
 
 export const googleLogin = () => {
-  if (!CAREERCOMPASS_API_URL) {
-    console.error(
-      "REACT_APP_CAREERCOMPASS_BACKEND_URL is not configured"
-    );
+  const frontendUrl = window.location.origin;
+
+  // Select the backend based on the current frontend URL
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  const backendUrl = isLocalhost
+    ? MYMENTOR_API_URL
+    : CAREERCOMPASS_API_URL;
+
+  if (!backendUrl) {
+    console.error("Google login backend URL is not configured");
     return;
   }
 
-  const frontendUrl = window.location.origin;
-
   window.location.href =
-    `${CAREERCOMPASS_API_URL}/api/auth/google?frontend_url=${encodeURIComponent(
+    `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(
       frontendUrl
     )}`;
 };
@@ -120,140 +124,98 @@ export const getCurrentUser = async () => {
 };
 
 // ==================================================
-// API
+// API METHODS
 // ==================================================
 
 export const api = {
   base: API,
 
-  // ==================================================
   // AUTHENTICATION
-  // ==================================================
 
   register: (name, email, password) =>
     client
-      .post("/auth/register", {
-        name,
-        email,
-        password,
-      })
+      .post("/auth/register", { name, email, password })
       .then((r) => r.data),
 
   login: (email, password) =>
     client
-      .post("/auth/login", {
-        email,
-        password,
-      })
+      .post("/auth/login", { email, password })
       .then((r) => r.data),
 
   adminLogin: (email, password) =>
     client
-      .post("/auth/login", {
-        email,
-        password,
-      })
+      .post("/auth/login", { email, password })
       .then((r) => r.data),
 
   me: () =>
-    client
-      .get("/auth/me")
-      .then((r) => r.data),
+    client.get("/auth/me").then((r) => r.data),
 
-
-        // JOIN COLLEGE
   joinCollege: (college_code) =>
     client
-      .post("/students/college-code", {
-        college_code,
-      })
+      .post("/students/college-code", { college_code })
       .then((r) => r.data),
 
-      // LINK COLLEGE BY STUDENT CODE
-linkCollegeByStudentCode: (student_code) =>
-  client
-    .post("/students/student-code", {
-      student_code,
-    })
-    .then((r) => r.data),
+  linkCollegeByStudentCode: (student_code) =>
+    client
+      .post("/students/student-code", { student_code })
+      .then((r) => r.data),
 
   googleSession: (session_id) =>
     client
-      .post("/auth/google/session", {
-        session_id,
+      .post("/auth/google/session", { session_id })
+      .then((r) => r.data),
+
+  // OTP AUTHENTICATION
+
+  otpSend: (phone) =>
+    client
+      .post("/auth/otp/send", { phone })
+      .then((r) => r.data),
+
+  otpVerify: (phone, otp, verificationId) =>
+    client
+      .post("/auth/otp/verify", {
+        phone,
+        otp,
+        verification_id: verificationId,
       })
       .then((r) => r.data),
 
-// ==================================================
-// OTP AUTHENTICATION
-// ==================================================
-
-otpSend: (phone) =>
-  client
-    .post("/auth/otp/send", {
-      phone,
-    })
-    .then((r) => r.data),
-
-otpVerify: (phone, otp, verificationId) =>
-  client
-    .post("/auth/otp/verify", {
-      phone,
-      otp,
-      verification_id: verificationId,
-    })
-    .then((r) => r.data),
-
-  // ==================================================
   // COLLEGES
-  // ==================================================
 
   collegesList: () =>
-    client
-      .get("/colleges")
-      .then((response) => response.data),
+    client.get("/colleges").then((r) => r.data),
 
   getCollegeById: (collegeId) =>
     client
       .get(`/colleges/${collegeId}`)
-      .then((response) => response.data),
+      .then((r) => r.data),
 
   createCollege: (collegeData) =>
     client
       .post("/colleges", collegeData)
-      .then((response) => response.data),
+      .then((r) => r.data),
 
   updateCollege: (collegeId, payload) =>
     client
       .put(`/colleges/${collegeId}`, payload)
-      .then((response) => response.data),
+      .then((r) => r.data),
 
-  // ==================================================
   // PROFILE
-  // ==================================================
 
   onboarding: (name, dob) =>
     client
-      .post("/me/onboarding", {
-        name,
-        dob,
-      })
+      .post("/me/onboarding", { name, dob })
       .then((r) => r.data),
 
   getProfile: () =>
-    client
-      .get("/profiles/me")
-      .then((r) => r.data),
+    client.get("/profiles/me").then((r) => r.data),
 
   createProfile: (body) =>
-    client
-      .post("/profiles/me", body)
-      .then((r) => r.data),
+    client.post("/profiles/me", body).then((r) => r.data),
 
   updateProfile: (body) =>
-    client
-      .put("/profiles/me", body)
-      .then((r) => r.data),
+    client.put("/profiles/me", body).then((r) => r.data),
 
   getProfileById: (profileId) =>
     client
@@ -271,22 +233,16 @@ otpVerify: (phone, otp, verificationId) =>
       .then((r) => r.data),
 
   journeyWithMyMentor: () =>
-    client
-      .get("/journey")
-      .then((r) => r.data),
+    client.get("/journey").then((r) => r.data),
 
-  // ==================================================
   // CAREER
-  // ==================================================
 
   careerGenerate: (payload) =>
     client
       .post("/career/generate", payload)
       .then((r) => r.data),
 
-  // ==================================================
   // CAREER PERSONA
-  // ==================================================
 
   careerPersonaMe: () =>
     client
@@ -300,10 +256,7 @@ otpVerify: (phone, otp, verificationId) =>
 
   careerPersonaCreate: ({ goal, answers }) =>
     client
-      .post("/career-personas", {
-        goal,
-        answers,
-      })
+      .post("/career-personas", { goal, answers })
       .then((r) => r.data),
 
   careerCourseSuggestions: () =>
@@ -311,9 +264,7 @@ otpVerify: (phone, otp, verificationId) =>
       .get("/career-persona/course-suggestions")
       .then((r) => r.data),
 
-  // ==================================================
   // CAREER PERSONA HISTORY
-  // ==================================================
 
   careerPersonaHistory: () =>
     client
@@ -330,9 +281,7 @@ otpVerify: (phone, otp, verificationId) =>
       .get("/career-persona-history/me/latest")
       .then((r) => r.data),
 
-  // ==================================================
   // MENTORS
-  // ==================================================
 
   mentorsList: (industry) =>
     client
@@ -345,19 +294,13 @@ otpVerify: (phone, otp, verificationId) =>
       .then((r) => r.data),
 
   mentorIndustries: () =>
-    client
-      .get("/mentors/industries")
-      .then((r) => r.data),
+    client.get("/mentors/industries").then((r) => r.data),
 
   mentorApply: (body) =>
-    client
-      .post("/mentors", body)
-      .then((r) => r.data),
+    client.post("/mentors", body).then((r) => r.data),
 
   mentorGet: (id) =>
-    client
-      .get(`/mentors/${id}`)
-      .then((r) => r.data),
+    client.get(`/mentors/${id}`).then((r) => r.data),
 
   mentorBook: (id, body) =>
     client
@@ -367,9 +310,7 @@ otpVerify: (phone, otp, verificationId) =>
   myBookings: (mentorId) =>
     client
       .get("/me/bookings", {
-        params: mentorId
-          ? { mentorId }
-          : {},
+        params: mentorId ? { mentorId } : {},
       })
       .then((r) => r.data),
 
@@ -378,38 +319,26 @@ otpVerify: (phone, otp, verificationId) =>
       .post(`/bookings/${bookingId}/report/demo`)
       .then((r) => r.data),
 
-  // ==================================================
   // ORGANISATIONS
-  // ==================================================
 
   companiesList: () =>
-    client
-      .get("/companies")
-      .then((r) => r.data),
+    client.get("/companies").then((r) => r.data),
 
   companyJoin: (body) =>
     client
       .post("/companies/onboard", body)
       .then((r) => r.data),
 
-  // ==================================================
   // JOBS
-  // ==================================================
 
   jobsList: (params = {}) =>
-    client
-      .get("/public/jobs", { params })
-      .then((r) => r.data),
+    client.get("/public/jobs", { params }).then((r) => r.data),
 
   jobGet: (id) =>
-    client
-      .get(`/public/jobs/${id}`)
-      .then((r) => r.data),
+    client.get(`/public/jobs/${id}`).then((r) => r.data),
 
   jobCreate: (body) =>
-    client
-      .post("/jobs", body)
-      .then((r) => r.data),
+    client.post("/jobs", body).then((r) => r.data),
 
   jobApplicationsList: (params = {}) =>
     client
@@ -421,19 +350,15 @@ otpVerify: (phone, otp, verificationId) =>
       .post("/job-applications", body)
       .then((r) => r.data),
 
-  // ==================================================
   // COURSES / SKILLHUB
-  // ==================================================
 
-studentCourses: async () => {
-  const response = await client.get("/students/courses");
-  return response.data;
-},
+  studentCourses: async () => {
+    const response = await client.get("/students/courses");
+    return response.data;
+  },
 
   courses: () =>
-    client
-      .get("/courses")
-      .then((r) => r.data),
+    client.get("/courses").then((r) => r.data),
 
   enrolledCourses: () =>
     client
@@ -450,36 +375,21 @@ studentCourses: async () => {
       .get(`/courses/${courseId}/journey`)
       .then((r) => r.data),
 
-      getLevelByCourseAndNumber: async (
-  courseId,
-  levelNumber
-) => {
-  const response = await axios.get(
-    `/api/levels/course/${courseId}/number/${levelNumber}`
-  );
+  getLevelByCourseAndNumber: async (courseId, levelNumber) => {
+    const response = await client.get(
+      `/levels/course/${courseId}/number/${levelNumber}`
+    );
 
     return response.data;
   },
 
-  // ==================================================
   // LEVELS
-  // ==================================================
-
-  // IMPORTANT:
-  // Use "client", NOT "axios".
-  // This automatically uses:
-  // API_BASE_URL + /api
-  // and also sends JWT token.
 
   levels: (params = {}) =>
-    client
-      .get("/levels", { params })
-      .then((r) => r.data),
+    client.get("/levels", { params }).then((r) => r.data),
 
   level: (levelId) =>
-    client
-      .get(`/levels/${levelId}`)
-      .then((r) => r.data),
+    client.get(`/levels/${levelId}`).then((r) => r.data),
 
   courseLevelsDropdown: (courseId) =>
     client
@@ -492,24 +402,18 @@ studentCourses: async () => {
       .then((r) => r.data),
 
   createLevel: (body) =>
-    client
-      .post("/levels", body)
-      .then((r) => r.data),
+    client.post("/levels", body).then((r) => r.data),
 
   updateLevel: (levelId, body) =>
     client
       .put(`/levels/${levelId}`, body)
       .then((r) => r.data),
 
-  // ==================================================
   // PROFILE PHOTO
-  // ==================================================
 
   uploadProfilePhoto: async (file) => {
     if (!file) {
-      throw new Error(
-        "No profile photo selected."
-      );
+      throw new Error("No profile photo selected.");
     }
 
     const fd = new FormData();
@@ -520,19 +424,13 @@ studentCourses: async () => {
       fd
     );
 
-    console.log(
-      "PROFILE PHOTO POST RESPONSE:",
-      response.data
-    );
-
+    console.log("PROFILE PHOTO POST RESPONSE:", response.data);
     return response.data;
   },
 
   updateProfilePhoto: async (file) => {
     if (!file) {
-      throw new Error(
-        "No profile photo selected."
-      );
+      throw new Error("No profile photo selected.");
     }
 
     const fd = new FormData();
@@ -543,17 +441,11 @@ studentCourses: async () => {
       fd
     );
 
-    console.log(
-      "PROFILE PHOTO PUT RESPONSE:",
-      response.data
-    );
-
+    console.log("PROFILE PHOTO PUT RESPONSE:", response.data);
     return response.data;
   },
 
-  // ==================================================
   // WORK EXPERIENCES
-  // ==================================================
 
   getWorkExperiences: () =>
     client
@@ -570,25 +462,17 @@ studentCourses: async () => {
       .put(`/work-experiences/${id}`, body)
       .then((r) => r.data),
 
-  // ==================================================
   // CHECKPOINTS
-  // ==================================================
+  // Uses VPS
 
   addCheckpoint: (body) =>
-    client
+    careerCompassClient
       .post("/checkpoints", body)
       .then((r) => r.data),
 
-  // ==================================================
   // CODE EXECUTION
-  // ==================================================
 
-  execute: (
-    checkpointId,
-    language,
-    code,
-    stdin
-  ) =>
+  execute: (checkpointId, language, code, stdin) =>
     client
       .post("/code/run", {
         checkpoint_id: checkpointId,
@@ -598,11 +482,7 @@ studentCourses: async () => {
       })
       .then((r) => r.data),
 
-  submit: (
-    checkpointId,
-    language,
-    code
-  ) =>
+  submit: (checkpointId, language, code) =>
     client
       .post("/code/submit", {
         checkpoint_id: checkpointId,
@@ -611,102 +491,78 @@ studentCourses: async () => {
       })
       .then((r) => r.data),
 
-  // ==================================================
   // VIDEO COMPLETE
-  // ==================================================
 
   videoComplete: (levelId) =>
     client
       .post(`/levels/${levelId}/video-complete`)
       .then((r) => r.data),
 
-  // ==================================================
   // PROGRESS
-  // ==================================================
 
   myProgress: () =>
-    client
-      .get("/me/progress")
-      .then((r) => r.data),
+    client.get("/me/progress").then((r) => r.data),
 
-  // Get progress for a specific level
   getLevelProgress: (levelId) =>
     client
       .get(`/progress/level/${levelId}`)
       .then((r) => r.data),
 
-  // Create progress
-createProgress: async (body) => {
-  if (!body?.level_id) {
-    throw new Error("level_id is required to create progress");
-  }
+  createProgress: async (body) => {
+    if (!body?.level_id) {
+      throw new Error("level_id is required to create progress");
+    }
 
-  // Get the level from backend
-  // This gives us the correct course_id for that level
-  const levelResponse = await client.get(
-    `/levels/${body.level_id}`
-  );
-
-  const level = levelResponse.data;
-
-  if (!level?.course_id) {
-    throw new Error(
-      `course_id not found for level ${body.level_id}`
+    const levelResponse = await client.get(
+      `/levels/${body.level_id}`
     );
-  }
 
-  // IMPORTANT:
-  // Ignore any stale/wrong course_id coming from frontend.
-  // Always use course_id belonging to this level.
-  const progressPayload = {
-    ...body,
-    course_id: level.course_id,
-  };
+    const level = levelResponse.data;
 
-  console.log("CREATE PROGRESS PAYLOAD:", progressPayload);
+    if (!level?.course_id) {
+      throw new Error(
+        `course_id not found for level ${body.level_id}`
+      );
+    }
 
-  const response = await client.post(
-    "/progress",
-    progressPayload
-  );
+    const progressPayload = {
+      ...body,
+      course_id: level.course_id,
+    };
 
-  return response.data;
-},
+    console.log("CREATE PROGRESS PAYLOAD:", progressPayload);
 
-  // Update existing progress
+    const response = await client.post(
+      "/progress",
+      progressPayload
+    );
+
+    return response.data;
+  },
+
   updateProgress: (progressId, body) =>
     client
       .put(`/progress/${progressId}`, body)
       .then((r) => r.data),
 
-  // ==================================================
   // STUDENT DASHBOARD
-  // ==================================================
 
   studentSkillHubDashboard: () =>
     client
       .get("/dashboard/student/skillhub")
       .then((r) => r.data),
 
-
   getMyResumes: async () => {
-    const response = await client.get(
-      "/files/me/resumes"
-    );
-
-    console.log(
-      "MY RESUMES API RESPONSE:",
-      response.data
-    );
-
+    const response = await client.get("/files/me/resumes");
+    console.log("MY RESUMES API RESPONSE:", response.data);
     return response.data;
   },
 
+  // RESUME UPLOAD
+
   upload: async (file) => {
     if (!file) {
-      throw new Error(
-        "No resume file selected."
-      );
+      throw new Error("No file selected.");
     }
 
     const formData = new FormData();
@@ -717,17 +573,11 @@ createProgress: async (body) => {
       formData
     );
 
-    console.log(
-      "RESUME UPLOAD API RESPONSE:",
-      response.data
-    );
-
+    console.log("FILE UPLOAD API RESPONSE:", response.data);
     return response.data;
   },
 
-  // ==================================================
   // ADMIN
-  // ==================================================
 
   skillHubDashboard: () =>
     client
@@ -735,146 +585,112 @@ createProgress: async (body) => {
       .then((r) => r.data),
 
   analytics: () =>
-    client
-      .get("/admin/analytics")
-      .then((r) => r.data),
+    client.get("/admin/analytics").then((r) => r.data),
 
   students: () =>
+    client.get("/users/students").then((r) => r.data),
+
+  introductionMcqSubmit: (body) =>
     client
-      .get("/users/students")
+      .post("/introduction-mcqs/submit", body)
       .then((r) => r.data),
 
-      introductionMcqSubmit: (body) =>
-  client
-    .post("/introduction-mcqs/submit", body)
-    .then((r) => r.data),
+  // COLLEGE ADMIN PORTAL
 
-   // ==================================================
-// COLLEGE ADMIN PORTAL
-// ==================================================
+  collegeAdminLogin: (body) =>
+    collegeAdminClient
+      .post("/college-admin/login", body)
+      .then((r) => r.data),
 
-collegeAdminLogin: (body) =>
-  collegeAdminClient
-    .post("/college-admin/login", body)
-    .then((r) => r.data),
+  collegeAdminDashboard: () =>
+    collegeAdminClient
+      .get("/college-admin/dashboard")
+      .then((r) => r.data),
 
-collegeAdminDashboard: () =>
-  collegeAdminClient
-    .get("/college-admin/dashboard")
-    .then((r) => r.data),
+  collegeAdminStudents: () =>
+    collegeAdminClient
+      .get("/college-admin/students")
+      .then((r) => r.data),
 
-collegeAdminStudents: () =>
-  collegeAdminClient
-    .get("/college-admin/students")
-    .then((r) => r.data),
+  collegeAdminCourses: () =>
+    collegeAdminClient
+      .get("/college-admin/courses")
+      .then((r) => r.data),
 
-collegeAdminCourses: () =>
-  collegeAdminClient
-    .get("/college-admin/courses")
-    .then((r) => r.data),
+  // ADMIN - STUDENT DASHBOARD
 
+  adminStudentSkillHubDashboard: (studentId) =>
+    client
+      .get(`/dashboard/student/skillhub/${studentId}`)
+      .then((r) => r.data),
 
-   // ==================================================
-// ADMIN - STUDENT DASHBOARD
-// ==================================================
+  adminStudentCourses: (studentId) =>
+    client
+      .get(`/admin/students/${studentId}/courses`)
+      .then((r) => r.data),
 
-adminStudentSkillHubDashboard: (studentId) =>
-  client
-    .get(`/dashboard/student/skillhub/${studentId}`)
-    .then((r) => r.data),
+  // COLLEGE ADMIN - STUDENT DASHBOARD
 
-adminStudentCourses: (studentId) =>
-  client
-    .get(`/admin/students/${studentId}/courses`)
-    .then((r) => r.data),
+  collegeAdminStudentSkillHubDashboard: (studentId) =>
+    collegeAdminClient
+      .get(`/dashboard/student/skillhub/${studentId}`)
+      .then((r) => r.data),
 
-// ==================================================
-// COLLEGE ADMIN - STUDENT DASHBOARD
-// ==================================================
+  collegeAdminStudentCourses: (studentId) =>
+    collegeAdminClient
+      .get(`/admin/students/${studentId}/courses`)
+      .then((r) => r.data),
 
-collegeAdminStudentSkillHubDashboard: (studentId) =>
-  collegeAdminClient
-    .get(`/dashboard/student/skillhub/${studentId}`)
-    .then((r) => r.data),
-
-collegeAdminStudentCourses: (studentId) =>
-  collegeAdminClient
-    .get(`/admin/students/${studentId}/courses`)
-    .then((r) => r.data),
-
-  // ==================================================
   // STUDENT IMPORT
-  // ==================================================
 
   importStudentsExcel: async (file, collegeId) => {
-  if (!file) throw new Error("No Excel file selected.");
-  if (!collegeId) throw new Error("College ID is required.");
+    if (!file) throw new Error("No Excel file selected.");
+    if (!collegeId) throw new Error("College ID is required.");
 
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const response = await client.post(
-    `/students/import?college_id=${encodeURIComponent(collegeId)}`,
-    formData
-  );
+    const response = await client.post(
+      `/students/import?college_id=${encodeURIComponent(collegeId)}`,
+      formData
+    );
 
-  console.log("STUDENT IMPORT RESPONSE:", response.data);
+    console.log("STUDENT IMPORT RESPONSE:", response.data);
+    return response.data;
+  },
 
-  return response.data;
-},
-
-  generateStudentCodes: async (
-    collegeId
-  ) => {
+  generateStudentCodes: async (collegeId) => {
     if (!collegeId) {
-      throw new Error(
-        "College ID is required."
-      );
+      throw new Error("College ID is required.");
     }
 
     const response = await client.post(
       `/students/import/${collegeId}/generate-codes`
     );
 
-    console.log(
-      "GENERATE STUDENT CODES RESPONSE:",
-      response.data
-    );
-
+    console.log("GENERATE STUDENT CODES RESPONSE:", response.data);
     return response.data;
   },
 
-  exportStudentsExcel: async (
-    collegeId
-  ) => {
+  exportStudentsExcel: async (collegeId) => {
     if (!collegeId) {
-      throw new Error(
-        "College ID is required."
-      );
+      throw new Error("College ID is required.");
     }
 
     const response = await client.get(
       `/students/import/${collegeId}/export`,
-      {
-        responseType: "blob",
-      }
+      { responseType: "blob" }
     );
 
     return response.data;
   },
 
-  // ==================================================
   // COURSES - ADMIN
-  // ==================================================
 
   createCourse: (body) =>
-    client
-      .post("/courses", body)
-      .then((r) => r.data),
+    client.post("/courses", body).then((r) => r.data),
 
-  // ==================================================
   // COLLEGE PACKAGES
-  // ==================================================
 
   createCollegePackage: (data) =>
     client
@@ -891,44 +707,15 @@ collegeAdminStudentCourses: (studentId) =>
       .get(`/college-packages/${packageId}`)
       .then((r) => r.data),
 
-  updateCollegePackage: (
-    packageId,
-    data
-  ) =>
+  updateCollegePackage: (packageId, data) =>
     client
-      .put(
-        `/college-packages/${packageId}`,
-        data
-      )
+      .put(`/college-packages/${packageId}`, data)
       .then((r) => r.data),
 
-  deleteCollegePackage: (
-    packageId
-  ) =>
+  deleteCollegePackage: (packageId) =>
     client
-      .delete(
-        `/college-packages/${packageId}`
-      )
+      .delete(`/college-packages/${packageId}`)
       .then((r) => r.data),
-
-  // ==================================================
-  // FILE UPLOAD
-  // ==================================================
-
-  upload: (file) => {
-    const fd = new FormData();
-
-    fd.append("file", file);
-
-    return client
-      .post("/files/upload", fd, {
-        headers: {
-          "Content-Type":
-            "multipart/form-data",
-        },
-      })
-      .then((r) => r.data);
-  },
 };
 
 // ==================================================
