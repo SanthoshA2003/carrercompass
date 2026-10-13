@@ -5,13 +5,24 @@ import axios from "axios";
 // BACKEND URLS
 // ==================================================
 
-const MYMENTOR_API_URL = process.env.REACT_APP_BACKEND_URL;
+const MYMENTOR_API_URL =
+  process.env.REACT_APP_BACKEND_URL ||
+  "https://mymentor-api.onrender.com";
+
 const CAREERCOMPASS_API_URL =
-  process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL;
+  process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+  "https://api.carrercompass.com";
 
 const MYMENTOR_API = `${MYMENTOR_API_URL}/api`;
 const CAREERCOMPASS_API = `${CAREERCOMPASS_API_URL}/api`;
-const API = MYMENTOR_API;
+
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+const API = isLocalhost
+  ? MYMENTOR_API
+  : CAREERCOMPASS_API;
 
 // ==================================================
 // AXIOS CLIENTS
@@ -119,7 +130,7 @@ export const googleLogin = () => {
 // ==================================================
 
 export const getCurrentUser = async () => {
-  const response = await client.get("/auth/me");
+  const response = await careerCompassClient.get("/auth/me");
   return response.data;
 };
 
@@ -147,8 +158,10 @@ export const api = {
       .post("/auth/login", { email, password })
       .then((r) => r.data),
 
-  me: () =>
-    client.get("/auth/me").then((r) => r.data),
+ me: () => {
+  const activeClient = isLocalhost ? client : careerCompassClient;
+  return activeClient.get("/auth/me").then((r) => r.data);
+},
 
   joinCollege: (college_code) =>
     client
