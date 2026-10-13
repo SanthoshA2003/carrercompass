@@ -16,40 +16,6 @@ export default function Navbar() {
   const { openAuth, isAuthed, user, logout } = useAuth();
   const navigate = useNavigate();
 
-  
-
-const filteredNavItems = navItems.filter((item) => {
-  const isSkillHub =
-    item.href === "/skillhub" ||
-    item.href.startsWith("/skillhub/") ||
-    item.label.toLowerCase() === "skillhub";
-
-  return !isSkillHub || isAuthed;
-});
-
-
-
-  
-const publicNavItems = navItems.filter((item) => {
-  const isSkillHub =
-    item.href === "/skillhub" ||
-    item.href.startsWith("/skillhub/") ||
-    item.label.toLowerCase() === "skillhub";
-
-  // Hide SkillHub before login
-  if (isSkillHub && !isAuthed) {
-    return false;
-  }
-
-  // Keep admin login out of the public navbar
-  if (item.href.startsWith("/skillhub/admin")) {
-    return false;
-  }
-
-  return true;
-});
-
-
  const goProtected = (to) => (e) => {
   e.preventDefault();
   setMobileOpen(false);
@@ -106,7 +72,7 @@ useEffect(() => {
         <Logo />
 
         <div className="hidden items-center gap-1 lg:flex">
-         {filteredNavItems.map((item) => 
+         {navItems.map((item) =>
   item.href === "/college-admin/login" ? (
     <Link
       key={item.label}
@@ -202,7 +168,7 @@ useEffect(() => {
             className="overflow-hidden border-t border-slate-200/60 bg-white/95 backdrop-blur-xl lg:hidden"
           >
             <div className="space-y-1 px-5 py-4">
-              {filteredNavItems.map((item) => 
+              {navItems.map((item) =>
                 item.href.startsWith("/") ? (
                   <a
                     key={item.label}

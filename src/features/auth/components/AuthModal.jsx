@@ -654,7 +654,7 @@ localStorage.setItem(
                       </button>
 
                       {/* Admin Login */}
-                      {showAdminLogin && (
+                      {/* {showAdminLogin && (
                         <button
                           type="button"
                           onClick={() => {
@@ -685,7 +685,7 @@ localStorage.setItem(
 
                           Login as Admin
                         </button>
-                      )}
+                      )} */}
 
                       {/* Divider */}
                       <div className="my-5 flex items-center gap-3 text-xs font-medium text-slate-600">
