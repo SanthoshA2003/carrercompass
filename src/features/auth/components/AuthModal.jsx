@@ -653,39 +653,8 @@ localStorage.setItem(
                         <span>Continue with Google</span>
                       </button>
 
-                      {/* Admin Login */}
-                      {showAdminLogin && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            closeAuth();
-                            navigate("/skillhub/login");
-                          }}
-                          className="
-                            mt-3
-                            flex
-                            w-full
-                            items-center
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            border
-                            border-slate-300
-                            bg-white
-                            px-5
-                            py-3
-                            text-sm
-                            font-semibold
-                            text-slate-700
-                            transition
-                            hover:bg-slate-50
-                          "
-                        >
-                          <ShieldCheck className="h-5 w-5 text-violet-600" />
-
-                          Login as Admin
-                        </button>
-                      )}
+                      
+                    
 
                       {/* Divider */}
                       <div className="my-5 flex items-center gap-3 text-xs font-medium text-slate-600">
