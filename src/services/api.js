@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
+const MYMENTOR_API_URL =
+  process.env.REACT_APP_BACKEND_URL;
+
+const CAREERCOMPASS_API_URL =
+  process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL;
+
+const API_BASE_URL = MYMENTOR_API_URL;
 
 if (!API_BASE_URL) {
   console.error("REACT_APP_BACKEND_URL is not configured");
@@ -86,19 +92,23 @@ client.interceptors.response.use(
 // GOOGLE LOGIN
 // ==================================================
 
+
 export const googleLogin = () => {
-  if (!API_BASE_URL) {
+  if (!CAREERCOMPASS_API_URL) {
     console.error(
-      "REACT_APP_BACKEND_URL is not configured"
+      "REACT_APP_CAREERCOMPASS_BACKEND_URL is not configured"
     );
     return;
   }
 
+  const frontendUrl = window.location.origin;
+
   window.location.href =
-    `${API_BASE_URL}/api/auth/google?frontend_url=${encodeURIComponent(
+    `${CAREERCOMPASS_API_URL}/api/auth/google?frontend_url=${encodeURIComponent(
       frontendUrl
     )}`;
 };
+
 
 // ==================================================
 // CURRENT USER
