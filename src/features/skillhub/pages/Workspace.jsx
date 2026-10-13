@@ -63,24 +63,19 @@ const LANGS = [
 ========================================================= */
 
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://mymentor-api.onrender.com/api"
-)
-  .replace(/\/$/, "")
-  .endsWith("/api")
+const isLocalhost =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+const API_BASE_URL = isLocalhost
   ? (
       import.meta.env.VITE_API_BASE_URL ||
       "https://mymentor-api.onrender.com/api"
-    ).replace(/\/$/, "")
-  : `${(
-      import.meta.env.VITE_API_BASE_URL ||
-      "https://mymentor-api.onrender.com"
-    ).replace(/\/$/, "")}/api`;
-
-const CAREERCOMPASS_API_URL =
-  import.meta.env.VITE_CAREERCOMPASS_API_URL ||
-  "https://api.carrercompass.com/api";
+    ).replace(/\/+$/, "")
+  : (
+      import.meta.env.VITE_CAREERCOMPASS_API_URL ||
+      "https://api.carrercompass.com/api"
+    ).replace(/\/+$/, "");
 
 const CHECKPOINTS_API_URL = `${API_BASE_URL}/checkpoints`;
 
