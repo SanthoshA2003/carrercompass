@@ -37,36 +37,21 @@ export const useAuth = () => useContext(AuthContext);
 
 /* ---------------- Google Login ---------------- */
 
+
 const handleGoogleLogin = () => {
   const frontendUrl = window.location.origin;
 
   const backendUrl =
     frontendUrl === "http://localhost:3000"
-      ? process.env.REACT_APP_BACKEND_URL
-      : process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL;
-
-  if (!backendUrl) {
-    console.error("Google login backend URL is missing");
-    toast.error("Backend URL is not configured");
-    return;
-  }
-
-  const allowedFrontends = [
-    "http://localhost:3000",
-    "https://carrercompass.com",
-    "https://careercampus-bd89.onrender.com",
-    "https://carrercompass-n2ms.onrender.com",
-  ];
-
-  if (!allowedFrontends.includes(frontendUrl)) {
-    console.error("Frontend URL not allowed:", frontendUrl);
-    toast.error("Invalid frontend URL");
-    return;
-  }
+      ? process.env.REACT_APP_BACKEND_URL ||
+        "https://mymentor-api.onrender.com"
+      : process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+        "https://api.carrercompass.com";
 
   window.location.href =
     `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(frontendUrl)}`;
 };
+
 
 
 /* ---------------- Google Icon ---------------- */
