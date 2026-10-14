@@ -1023,7 +1023,7 @@ const levelCheckpoints = selectedLevel?.checkpoints || [];
             <div><Label>Difficulty</Label>
               <select value={cp.difficulty} onChange={(e) => setCp({ ...cp, difficulty: e.target.value })} className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white"><option>Easy</option><option>Medium</option><option>Hard</option></select>
             </div>
-            <div><Label>XP</Label><Input type="number" value={cp.xp} onChange={(e) => setCp({ ...cp, xp: e.target.value })} /></div>
+            {/* <div><Label>XP</Label><Input type="number" value={cp.xp} onChange={(e) => setCp({ ...cp, xp: e.target.value })} /></div> */}
             <div className="sm:col-span-4"><Label>Challenge Title</Label><Input value={cp.title} onChange={(e) => setCp({ ...cp, title: e.target.value })} data-testid="cp-title" /></div>
             <div className="sm:col-span-4"><Label>Business Scenario</Label><Input value={cp.scenario} onChange={(e) => setCp({ ...cp, scenario: e.target.value })} placeholder="You are building a billing system..." /></div>
             <div className="sm:col-span-4"><Label>Problem Statement</Label><Area rows={2} value={cp.problemStatement} onChange={(e) => setCp({ ...cp, problemStatement: e.target.value })} /></div>

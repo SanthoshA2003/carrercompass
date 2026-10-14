@@ -1279,51 +1279,68 @@ export default function Workspace() {
      VIDEO COMPLETION
   ======================================================= */
 
-  const onEnded = async () => {
-    if (!allPassed || videoDone) {
-      return;
-    }
+
+const onEnded = async () => {
+  const allCheckpointsCompleted =
+    checkpoints.length > 0 &&
+    checkpoints.every((checkpoint) =>
+      passed.has(String(checkpoint.id))
+    );
+
+  if (!allCheckpointsCompleted || videoDone) {
+    return;
+  }
+
+  try {
+    const response = await api.videoComplete(levelId);
+    const data = response?.data ?? response;
+
+    console.log("VIDEO COMPLETE RESPONSE:", data);
+
+    const levelCompleted =
+      data?.level_completed === true ||
+      data?.levelCompleted === true;
+
+    setVideoDone(true);
+
+    // Show the popup when the video and all checkpoints
+    // are completed, even if saving progress fails.
+    setCompletedModal(true);
+    refresh();
+
+    const currentCourseId =
+      courseId ||
+      level?.courseId ||
+      level?.course_id ||
+      level?.course?.id ||
+      localStorage.getItem("courseId") ||
+      localStorage.getItem("course_id");
 
     try {
-      const response = await api.videoComplete(levelId);
-
-      console.log("VIDEO COMPLETE RESPONSE:", response);
-
-      setVideoDone(true);
-
-      /*
-       * Save final progress
-       */
-      const userId = getStoredUserId();
-
-      const currentCourseId =
-        courseId ||
-        level?.courseId ||
-        level?.course_id ||
-        level?.course?.id ||
-        localStorage.getItem("courseId") ||
-        localStorage.getItem("course_id");
-
       await saveProgressRecord({
         courseId: currentCourseId,
         levelId,
         checkpointsPassed: checkpoints.map((checkpoint) =>
-          String(checkpoint.id),
+          String(checkpoint.id)
         ),
         videoCompleted: true,
         completed: true,
       });
-
-      if (response?.levelCompleted === true) {
-        setCompletedModal(true);
-        refresh();
-      }
-    } catch (error) {
-      console.error("Video completion failed:", error);
-
-      toast.error("Unable to complete the level");
+    } catch (progressError) {
+      console.error(
+        "Final progress save failed:",
+        progressError
+      );
     }
-  };
+
+    console.log("Level completion status:", levelCompleted);
+  } catch (error) {
+    console.error("Video completion failed:", error);
+
+    toast.error("Unable to complete the level");
+  }
+};
+
 
   const finishVideoManually = async () => {
     try {
