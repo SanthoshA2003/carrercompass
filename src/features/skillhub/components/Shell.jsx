@@ -96,6 +96,42 @@ export default function Shell({
   const loc = useLocation();
   const nav = useNavigate();
 
+  const [stats, setStats] = useState({
+  xp: user?.xp ?? 0,
+  streak: user?.streak ?? 0,
+});
+
+
+useEffect(() => {
+  let cancelled = false;
+
+  const fetchStudentStats = async () => {
+    if (user?.role === "admin") return;
+
+    try {
+      const response = await api.studentSkillHubDashboard();
+
+      if (cancelled) return;
+
+      setStats({
+        xp: response?.xp ?? 0,
+        streak: response?.streak ?? 0,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to fetch student stats:",
+        error?.response?.data || error
+      );
+    }
+  };
+
+  fetchStudentStats();
+
+  return () => {
+    cancelled = true;
+  };
+}, [user?.role]);
+
   const [courseId, setCourseId] = useState(
   () => localStorage.getItem("skillhub_course_id")
 );
@@ -615,7 +651,7 @@ useEffect(() => {
               "
             >
               <Flame className="h-4 w-4" />
-              {user?.streak ?? 0}
+              {stats.streak}
             </span>
 
             {/* XP */}
@@ -634,7 +670,7 @@ useEffect(() => {
               "
             >
               <Zap className="h-4 w-4 fill-current" />
-              {user?.xp ?? 0} XP
+              {stats.xp} XP
             </span>
 
           </div>
