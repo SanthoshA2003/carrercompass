@@ -38,19 +38,26 @@ export const useAuth = () => useContext(AuthContext);
 /* ---------------- Google Login ---------------- */
 
 
+
 const handleGoogleLogin = () => {
   const frontendUrl = window.location.origin;
 
-  const backendUrl =
-    frontendUrl === "http://localhost:3000"
-      ? process.env.REACT_APP_BACKEND_URL ||
-        "https://mymentor-api.onrender.com"
-      : process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
-        "https://api.carrercompass.com";
+  const isCareerCompass =
+    window.location.hostname === "carrercompass.com" ||
+    window.location.hostname === "www.carrercompass.com";
+
+  const backendUrl = isCareerCompass
+    ? process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+      "https://api.carrercompass.com"
+    : process.env.REACT_APP_BACKEND_URL ||
+      "https://mymentor-api.onrender.com";
 
   window.location.href =
-    `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(frontendUrl)}`;
+    `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(
+      frontendUrl
+    )}`;
 };
+
 
 
 
