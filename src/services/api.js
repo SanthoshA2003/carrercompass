@@ -478,10 +478,15 @@ me: () => {
   // CHECKPOINTS
   // Uses VPS
 
+
+  // CHECKPOINTS
+  // Uses the backend selected for the current frontend domain
+
   addCheckpoint: (body) =>
-    careerCompassClient
+    client
       .post("/checkpoints", body)
       .then((r) => r.data),
+
 
   // CODE EXECUTION
 
