@@ -16,13 +16,16 @@ const CAREERCOMPASS_API_URL =
 const MYMENTOR_API = `${MYMENTOR_API_URL}/api`;
 const CAREERCOMPASS_API = `${CAREERCOMPASS_API_URL}/api`;
 
-const isLocalhost =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
 
-const API = isLocalhost
-  ? MYMENTOR_API
-  : CAREERCOMPASS_API;
+const hostname = window.location.hostname;
+
+const isCareerCompass =
+  hostname === "carrercompass.com" ||
+  hostname === "www.carrercompass.com";
+
+const API = isCareerCompass
+  ? CAREERCOMPASS_API
+  : MYMENTOR_API;
 
 // ==================================================
 // AXIOS CLIENTS
@@ -30,7 +33,7 @@ const API = isLocalhost
 
 // Render: MyMentor APIs
 const client = axios.create({
-  baseURL: MYMENTOR_API,
+  baseURL: API,
   withCredentials: true,
 });
 
@@ -101,22 +104,14 @@ client.interceptors.response.use(
 // ==================================================
 
 
+
 export const googleLogin = () => {
   const frontendUrl = window.location.origin;
 
-  // Select the backend based on the current frontend URL
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-
-  const backendUrl = isLocalhost
-    ? MYMENTOR_API_URL
-    : CAREERCOMPASS_API_URL;
-
-  if (!backendUrl) {
-    console.error("Google login backend URL is not configured");
-    return;
-  }
+  // Select backend based on the frontend domain
+  const backendUrl = isCareerCompass
+    ? CAREERCOMPASS_API_URL
+    : MYMENTOR_API_URL;
 
   window.location.href =
     `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(
@@ -158,10 +153,15 @@ export const api = {
       .post("/auth/login", { email, password })
       .then((r) => r.data),
 
- me: () => {
-  const activeClient = isLocalhost ? client : careerCompassClient;
+
+me: () => {
+  const activeClient = isCareerCompass
+    ? careerCompassClient
+    : client;
+
   return activeClient.get("/auth/me").then((r) => r.data);
 },
+
 
   joinCollege: (college_code) =>
     client
