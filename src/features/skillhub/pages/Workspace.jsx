@@ -1554,7 +1554,9 @@ const onEnded = async () => {
 
       setPassed(newPassed);
 
-      toast.success(`Checkpoint solved! +${xpEarned} XP`);
+      toast.success(
+  `${newPassed.size}/${checkpoints.length} checkpoints solved`
+);
 
       // Remove checkpoint lock
       setActiveCp(null);
