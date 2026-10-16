@@ -8,6 +8,7 @@ import MentorApplyModal from "@/features/mentors/components/MentorApplyModal";
 
 
 
+
 const normalizeMentor = (m) => ({
   ...m,
   id: m.id ?? m._id,
@@ -17,16 +18,62 @@ const normalizeMentor = (m) => ({
   industry: m.industry ?? "",
   img: m.image_url ?? m.img ?? "",
   exp: Number(m.experience_years ?? m.experienceYears ?? m.exp ?? 0),
+
   skills: Array.isArray(m.skills)
     ? m.skills
     : typeof m.skills === "string"
       ? m.skills.split(",").map((s) => s.trim()).filter(Boolean)
       : [],
+
   rating: Number(m.rating ?? 0),
-  price: Number(m.price ?? 0),
-  availability: m.availability ?? "Not specified",
+
+  // Backend uses price_per_session
+  price: Number(m.price_per_session ?? m.price ?? 0),
+
+  // Combine availability and time for display
+ 
+
+
+availability: (() => {
+  const days =
+    m.availability ?? m.available_days ?? "";
+
+  const startTime =
+    m.start_time ?? m.startTime ?? "";
+
+  const endTime =
+    m.end_time ?? m.endTime ?? "";
+
+  const formatTime = (value) => {
+    if (!value) return "";
+
+    const match = String(value).match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return String(value);
+
+    const hours = Number(match[1]);
+    const minutes = match[2];
+    const period = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours % 12 || 12;
+
+    return `${hour12}:${minutes} ${period}`;
+  };
+
+  const timeRange =
+    startTime && endTime
+      ? `${formatTime(startTime)} - ${formatTime(endTime)}`
+      : "";
+
+  return [days, timeRange]
+    .filter(Boolean)
+    .join(" · ");
+})(),
+
+start_time: m.start_time ?? m.startTime ?? "",
+end_time: m.end_time ?? m.endTime ?? "",
+
   verified: Boolean(m.verified),
 });
+
 
 
 export default function MentorsPage() {
@@ -38,7 +85,9 @@ export default function MentorsPage() {
   const [sort, setSort] = useState("rating");
   const [applyOpen, setApplyOpen] = useState(false);
 
-  const refreshMentors = async () => {
+
+
+const refreshMentors = async () => {
   try {
     const data = await api.mentorsList(industry);
 
@@ -48,36 +97,48 @@ export default function MentorsPage() {
 
     setMentors(list.map(normalizeMentor));
   } catch (error) {
-    console.error("Failed to refresh mentors:", error);
+    console.error(
+      "Failed to refresh mentors:",
+      error.response?.data || error.message
+    );
   }
 };
 
-  useEffect(() => { api.mentorIndustries().then(setIndustries).catch(() => {}); }, []);
+
+
 
 useEffect(() => {
   let active = true;
 
-  setMentors(null);
+  const loadMentors = async () => {
+    setMentors(null);
 
-  api.mentorsList(industry)
-    .then((data) => {
-      if (!active) return;
+    try {
+      const data = await api.mentorsList(industry);
 
       const list = Array.isArray(data)
         ? data
         : data?.mentors ?? data?.items ?? [];
 
-      setMentors(list.map(normalizeMentor));
-    })
-    .catch((error) => {
+      if (active) {
+        setMentors(list.map(normalizeMentor));
+      }
+    } catch (error) {
       console.error("Failed to load mentors:", error);
-      if (active) setMentors([]);
-    });
+
+      if (active) {
+        setMentors([]);
+      }
+    }
+  };
+
+  loadMentors();
 
   return () => {
     active = false;
   };
 }, [industry]);
+
 
 
 
@@ -207,10 +268,26 @@ const filtered = useMemo(() => {
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {(m.skills || []).map((s) => <span key={s} className="rounded-lg bg-slate-50 px-2.5 py-1 text-[12px] font-medium text-slate-600">{s}</span>)}
                 </div>
-                <div className="mt-4 flex items-center gap-4 text-[13px] text-slate-500">
-                  <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" /> {m.exp} yrs</span>
-                  <span className="text-emerald-600">● {m.availability}</span>
-                </div>
+               
+<div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-slate-500">
+  <span className="flex items-center gap-1.5">
+    <Briefcase className="h-3.5 w-3.5" />
+    {m.exp} yrs
+  </span>
+
+ <div className="flex flex-col gap-1 text-[13px]">
+  <span className="text-emerald-600">
+    ● {m.availability || "Availability not specified"}
+  </span>
+
+  {m.start_time && m.end_time && (
+    <span className="pl-3 text-slate-500">
+      {m.start_time} - {m.end_time}
+    </span>
+  )}
+</div>
+</div>
+
                 <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
                   <div><span className="text-2xl font-black text-slate-900">₹{m.price}</span><span className="text-[13px] text-slate-400"> / session</span></div>
                   <button onClick={() => navigate(`/mentors/${m.id}`)} className="rounded-full bg-slate-900 px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-slate-800" data-testid={`book-${i}`}>Book Session</button>

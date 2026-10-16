@@ -310,22 +310,46 @@ me: () => {
     client.get("/mentors/industries").then((r) => r.data),
 
   mentorApply: (body) =>
-    client.post("/mentors", body).then((r) => r.data),
+  client.post("/mentor-applications", body).then((r) => r.data),
 
   mentorGet: (id) =>
     client.get(`/mentors/${id}`).then((r) => r.data),
 
-  mentorBook: (id, body) =>
-    client
-      .post(`/mentors/${id}/book`, body)
-      .then((r) => r.data),
-
+mentorBook: (id, body) =>
+  client
+    .post("/bookings", {
+      ...body,
+      mentor_id: id,
+    })
+    .then((r) => r.data),
   myBookings: (mentorId) =>
-    client
-      .get("/me/bookings", {
-        params: mentorId ? { mentorId } : {},
-      })
-      .then((r) => r.data),
+  client.get("/bookings/me").then((r) => {
+    const data = Array.isArray(r.data) ? r.data : [];
+
+    return data
+      .filter((b) => !mentorId || b.mentor_id === mentorId)
+      .map((b) => {
+        const scheduledAt = b.scheduled_at
+          ? new Date(b.scheduled_at)
+          : null;
+
+        return {
+          ...b,
+          mentorId: b.mentor_id,
+          date: scheduledAt
+            ? scheduledAt.toLocaleDateString()
+            : "",
+          time: scheduledAt
+            ? scheduledAt.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          meetingLink: b.meeting_link ?? "",
+          mentorName: b.mentor_name ?? "",
+        };
+      });
+  }),
 
   generateReport: (bookingId) =>
     client

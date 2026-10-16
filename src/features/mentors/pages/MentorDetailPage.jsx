@@ -24,8 +24,45 @@ export default function MentorDetailPage() {
   const [bookings, setBookings] = useState([]);
   const [tab, setTab] = useState("dashboard");
 
-  useEffect(() => { api.mentorGet(id).then(setMentor).catch(() => setMentor(false)); }, [id]);
+
+useEffect(() => {
+  api.mentorGet(id)
+    .then((data) => {
+      setMentor({
+        ...data,
+        id: data.id ?? data._id,
+        exp: Number(
+          data.experience_years ??
+          data.experienceYears ??
+          data.exp ??
+          0
+        ),
+        price: Number(
+          data.price_per_session ?? data.price ?? 0
+        ),
+        languages: data.languages ?? "",
+        availability: [
+          data.availability,
+          data.start_time && data.end_time
+            ? `${String(data.start_time).slice(0, 5)} - ${String(data.end_time).slice(0, 5)}`
+            : "",
+        ].filter(Boolean).join(", "),
+        skills: Array.isArray(data.skills)
+          ? data.skills
+          : typeof data.skills === "string"
+            ? data.skills.split(",").map((s) => s.trim()).filter(Boolean)
+            : [],
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to load mentor:", error);
+      setMentor(false);
+    });
+}, [id]);
+
+
   const loadBookings = () => api.myBookings(id).then(setBookings).catch(() => {});
+
   useEffect(() => { if (ready && isAuthed) loadBookings(); else if (ready && !isAuthed) openAuth(loadBookings); }, [ready, isAuthed, id]);
 
   if (mentor === null) return <div className="grid h-screen place-items-center bg-[#F8FAFC]"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
@@ -48,7 +85,15 @@ export default function MentorDetailPage() {
         {/* Mentor hero */}
         <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-soft sm:p-8" data-testid="mentor-hero">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <img src={mentor.img} alt={mentor.name} className="h-24 w-24 rounded-2xl object-cover shadow-soft" />
+<div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-3xl font-bold text-white shadow-soft">
+  {(mentor.name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("")}
+</div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-black text-slate-900">{mentor.name}</h1>
@@ -127,7 +172,7 @@ function DashboardTab({ mentor, bookings, onBook }) {
           <div className="mt-3 rounded-2xl bg-white/15 p-4 backdrop-blur">
             <p className="flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> {upcoming[0].date} at {upcoming[0].time}</p>
             <p className="mt-1 text-sm opacity-90">{upcoming[0].topic || "General mentorship"}</p>
-            <a href={upcoming[0].meetingLink.startsWith("http") ? upcoming[0].meetingLink : undefined} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900">
+            <a href={upcoming[0].meetingLink?.startsWith("http") ? upcoming[0].meetingLink : undefined} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900">
               <Video className="h-4 w-4" /> Join meeting
             </a>
           </div>
@@ -145,16 +190,47 @@ function DashboardTab({ mentor, bookings, onBook }) {
 /* ---------- Booking ---------- */
 const fld = "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 function BookingTab({ mentor, bookings, isAuthed, openAuth, onBooked }) {
-  const [f, setF] = useState({ date: "", time: "", topic: "", mode: "Google Meet" });
+ const [f, setF] = useState({
+  date: "",
+  time: "",
+  topic: "",
+  mode: "Google Meet",
+  meeting_link: "",
+});
   const [loading, setLoading] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const today = new Date().toISOString().slice(0, 10);
 
   const submit = async () => {
-    if (!f.date || !f.time) return toast.error("Please pick a date and time");
+   if (!f.date || !f.time) {
+  return toast.error("Please pick a date and time");
+}
+
+if (
+  f.mode !== "Phone" &&
+  !/^https?:\/\/\S+$/i.test(f.meeting_link.trim())
+) {
+  return toast.error("Please enter a valid meeting URL");
+}
     const doBook = async () => {
       setLoading(true);
-      try { const r = await api.mentorBook(mentor.id, f); toast.success(r.message); setF({ date: "", time: "", topic: "", mode: "Google Meet" }); onBooked(); }
+      try {
+        const payload = {
+  scheduled_at: new Date(
+    `${f.date}T${f.time}:00`
+  ).toISOString(),
+  topic: f.topic,
+  mode: f.mode,
+  meeting_link:
+    f.mode === "Phone" ? null : f.meeting_link.trim(),
+};
+
+const r = await api.mentorBook(mentor.id, payload);
+
+          toast.success("Booking successful!", {
+  description: "Your mentor session has been booked successfully.",
+  duration: 4000,
+}); setF({ date: "", time: "", topic: "", mode: "Google Meet" }); onBooked(); }
       catch (e) { toast.error(e.response?.data?.detail || "Booking failed"); }
       finally { setLoading(false); }
     };
@@ -184,6 +260,32 @@ function BookingTab({ mentor, bookings, isAuthed, openAuth, onBooked }) {
               ))}
             </div>
           </div>
+
+              {f.mode !== "Phone" && (
+  <div>
+    <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+      {f.mode} Meeting Link
+    </label>
+
+    <input
+      type="url"
+      className={fld}
+      placeholder={
+        f.mode === "Zoom"
+          ? "https://zoom.us/j/..."
+          : "https://meet.google.com/..."
+      }
+      value={f.meeting_link}
+      onChange={set("meeting_link")}
+      required
+    />
+
+    <p className="mt-1 text-xs text-slate-400">
+      Enter the meeting link participants will use to join.
+    </p>
+  </div>
+)}
+
           <button onClick={submit} disabled={loading} data-testid="booking-submit"
             className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3.5 text-[16px] font-semibold text-white shadow-medium transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-60">
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Confirm Booking · ₹{mentor.price}</>}
@@ -206,9 +308,23 @@ function BookingTab({ mentor, bookings, isAuthed, openAuth, onBooked }) {
                 {b.topic && <p className="mt-1 text-sm text-slate-500">{b.topic}</p>}
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <span className="flex items-center gap-1 text-slate-500"><Video className="h-3.5 w-3.5" /> {b.mode}</span>
-                  {b.meetingLink?.startsWith("http") ? (
-                    <a href={b.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:underline"><LinkIcon className="h-3.5 w-3.5" /> Join</a>
-                  ) : <span className="text-slate-500">{b.meetingLink}</span>}
+               {b.meetingLink?.startsWith("http") ? (
+  <a
+    href={b.meetingLink}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:underline"
+  >
+    <Video className="h-3.5 w-3.5" />
+    Join Meeting
+  </a>
+) : (
+  <span className="text-slate-500">
+    {b.mode === "Phone"
+      ? "Phone call"
+      : "Meeting link not available"}
+  </span>
+)}
                 </div>
               </div>
             ))}
