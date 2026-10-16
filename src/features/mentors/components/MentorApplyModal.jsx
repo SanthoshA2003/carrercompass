@@ -5,7 +5,7 @@ import { api } from "@/services/api";
 import { PrimaryButton } from "@/features/career/components/landing/primitives";
 import { toast } from "sonner";
 
-const INDUSTRIES = ["Technology", "Healthcare", "Finance", "Government", "Design", "Data Science", "Business", "Law", "Engineering", "Science", "Arts", "Other"];
+const INDUSTRIES = ["Information Technology", "Healthcare", "Finance", "Government", "Design", "Data Science", "Business", "Law", "Engineering", "Science", "Arts", "Other"];
 const field = "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 const Label = ({ children, req }) => <label className="mb-1.5 block text-sm font-semibold text-slate-700">{children}{req && <span className="text-blue-600"> *</span>}</label>;
 
@@ -22,6 +22,10 @@ const initialForm = {
   linkedin: "",
   bio: "",
   motivation: "",
+   price: "",
+availability: "",
+startTime: "10:00",
+endTime: "17:00",
 };
 
 export default function MentorApplyModal({
@@ -49,8 +53,20 @@ useEffect(() => {
     e.preventDefault();
     if (!f.name || !f.email || !f.role || !f.industry) return toast.error("Please fill all required fields");
     if (yrs < 5) return toast.error("Mentors need a minimum of 5 years of experience in one industry.");
+    if (!f.availability) {
+  return toast.error("Please select your availability.");
+}
+
+if (f.startTime >= f.endTime) {
+  return toast.error("End time must be later than start time.");
+}
+
+if (!f.price || Number(f.price) <= 0) {
+  return toast.error("Please enter a valid session price.");
+}
     setLoading(true);
     try {
+
 
 const payload = {
   name: f.name,
@@ -60,21 +76,23 @@ const payload = {
   company: f.company,
   industry: f.industry,
   experience_years: yrs,
-  skills: f.skills
-    .split(",")
-    .map((skill) => skill.trim())
-    .filter(Boolean),
+  skills: f.skills.trim(),
   languages: f.languages,
   linkedin: f.linkedin,
   bio: f.bio,
   motivation: f.motivation,
+
+  // Price and availability fields
+  price_per_session: Number(f.price),
+  availability: f.availability,
+  start_time: `${f.startTime}:00`,
+  end_time: `${f.endTime}:00`,
 };
+
 
 await api.mentorApply(payload);
 
 toast.success("Mentor application submitted successfully!");
-
-await onApplicationSuccess?.();
 
 setDone(true);
     
@@ -159,6 +177,67 @@ const close = () => {
                     {yearsInvalid && <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-red-500" data-testid="apply-years-error"><AlertCircle className="h-4 w-4" /> A minimum of 5 years in one industry is required to mentor.</p>}
                   </div>
                   <div><Label>Skills / Expertise</Label><input className={field} value={f.skills} onChange={set("skills")} placeholder="System Design, Career Coaching..." data-testid="apply-skills" /></div>
+              {/* Price per session */}
+<div>
+  <Label req>Price per Session (₹)</Label>
+  <input
+    className={field}
+    type="number"
+    min="1"
+    step="1"
+    required
+    value={f.price}
+    onChange={set("price")}
+    placeholder="e.g. 1000"
+    data-testid="apply-price"
+  />
+</div>
+
+
+{/* Availability Type */}
+<div>
+  <Label req>Availability</Label>
+  <select
+    className={field}
+    required
+    value={f.availability}
+    onChange={set("availability")}
+    data-testid="apply-availability"
+  >
+    <option value="">Select availability</option>
+    <option value="Weekdays">Weekdays</option>
+    <option value="Weekends">Weekends</option>
+    <option value="Flexible">Flexible</option>
+  </select>
+</div>
+
+{/* Start Time */}
+<div>
+  <Label req>Start Time</Label>
+  <input
+    className={field}
+    type="time"
+    required
+    value={f.startTime}
+    onChange={set("startTime")}
+    data-testid="apply-start-time"
+  />
+</div>
+
+{/* End Time */}
+<div>
+  <Label req>End Time</Label>
+  <input
+    className={field}
+    type="time"
+    required
+    value={f.endTime}
+    onChange={set("endTime")}
+    data-testid="apply-end-time"
+  />
+</div>
+
+
                   <div><Label>Languages</Label><input className={field} value={f.languages} onChange={set("languages")} placeholder="English, Tamil" data-testid="apply-languages" /></div>
                   <div className="sm:col-span-2"><Label>LinkedIn</Label><input className={field} value={f.linkedin} onChange={set("linkedin")} placeholder="https://linkedin.com/in/..." data-testid="apply-linkedin" /></div>
                   <div className="sm:col-span-2"><Label>Why do you want to mentor?</Label><textarea className={field} rows={3} value={f.motivation} onChange={set("motivation")} data-testid="apply-motivation" /></div>
