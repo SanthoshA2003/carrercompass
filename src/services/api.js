@@ -901,6 +901,134 @@ collegeAdminStudentCourses: (studentId) =>
       )
       .then((r) => r.data),
 
+      // ==================================================
+// SKILL ASSESSMENT
+// ==================================================
+
+getSkillAssessmentCategories: () =>
+  client
+    .get("/skill-assessment/categories")
+    .then((r) => r.data),
+
+getSkillAssessmentCategoryQuestions: (categoryId) =>
+  client
+    .get(
+      `/skill-assessment/categories/${categoryId}/questions`
+    )
+    .then((r) => r.data),
+
+createSkillAssessmentQuestion: (body) =>
+  client
+    .post("/skill-assessment/questions", body)
+    .then((r) => r.data),
+
+getSkillAssessmentQuestion: (questionId) =>
+  client
+    .get(
+      `/skill-assessment/questions/${questionId}`
+    )
+    .then((r) => r.data),
+
+updateSkillAssessmentQuestion: (
+  questionId,
+  body
+) =>
+  client
+    .put(
+      `/skill-assessment/questions/${questionId}`,
+      body
+    )
+    .then((r) => r.data),
+
+deleteSkillAssessmentQuestion: (questionId) =>
+  client
+    .delete(
+      `/skill-assessment/questions/${questionId}`
+    )
+    .then((r) => r.data),
+
+  // ==================================================
+// SKILL ASSESSMENT
+// ==================================================
+
+getSkillAssessmentCategories: () =>
+  client
+    .get("/skill-assessment/categories")
+    .then((r) => r.data),
+
+getSkillAssessmentCategoryQuestions: (categoryId) =>
+  client
+    .get(
+      `/skill-assessment/categories/${categoryId}/questions`
+    )
+    .then((r) => r.data),
+
+createSkillAssessmentQuestion: (body) =>
+  client
+    .post("/skill-assessment/questions", body)
+    .then((r) => r.data),
+
+getSkillAssessmentQuestion: (questionId) =>
+  client
+    .get(`/skill-assessment/questions/${questionId}`)
+    .then((r) => r.data),
+
+updateSkillAssessmentQuestion: (
+  questionId,
+  body
+) =>
+  client
+    .put(
+      `/skill-assessment/questions/${questionId}`,
+      body
+    )
+    .then((r) => r.data),
+
+deleteSkillAssessmentQuestion: (questionId) =>
+  client
+    .delete(
+      `/skill-assessment/questions/${questionId}`
+    )
+    .then((r) => r.data),
+
+// ==================================================
+// RUN SKILL ASSESSMENT QUESTION
+// ==================================================
+
+runSkillAssessmentQuestion: (
+  questionId,
+  language,
+  code
+) =>
+  client
+    .post(
+      `/skill-assessment/questions/${questionId}/run`,
+      {
+        language,
+        code,
+      }
+    )
+    .then((r) => r.data),
+
+// ==================================================
+// SUBMIT SKILL ASSESSMENT QUESTION
+// ==================================================
+
+submitSkillAssessmentQuestion: (
+  questionId,
+  language,
+  code
+) =>
+  client
+    .post(
+      `/skill-assessment/questions/${questionId}/submit`,
+      {
+        language,
+        code,
+      }
+    )
+    .then((r) => r.data), 
+
   // ==================================================
   // FILE UPLOAD
   // ==================================================
