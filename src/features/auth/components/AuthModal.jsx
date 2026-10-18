@@ -37,29 +37,26 @@ export const useAuth = () => useContext(AuthContext);
 
 /* ---------------- Google Login ---------------- */
 
-
-
 const handleGoogleLogin = () => {
   const frontendUrl = window.location.origin;
+  const hostname = window.location.hostname;
+
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
   const isCareerCompass =
-    window.location.hostname === "carrercompass.com" ||
-    window.location.hostname === "www.carrercompass.com";
+    hostname === "carrercompass.com" || hostname === "www.carrercompass.com";
 
-  const backendUrl = isCareerCompass
-    ? process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
-      "https://api.carrercompass.com"
-    : process.env.REACT_APP_BACKEND_URL ||
-      "https://mymentor-api.onrender.com";
+  const backendUrl =
+    isLocalhost || isCareerCompass
+      ? process.env.REACT_APP_CAREERCOMPASS_BACKEND_URL ||
+        "https://api.carrercompass.com"
+      : process.env.REACT_APP_BACKEND_URL ||
+        "https://mymentor-api.onrender.com";
 
-  window.location.href =
-    `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(
-      frontendUrl
-    )}`;
+  window.location.href = `${backendUrl}/api/auth/google?frontend_url=${encodeURIComponent(
+    frontendUrl,
+  )}`;
 };
-
-
-
 
 /* ---------------- Google Icon ---------------- */
 
@@ -106,7 +103,7 @@ export const AuthProvider = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState("phone");
 
-const [studentCode, setStudentCode] = useState("");
+  const [studentCode, setStudentCode] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [verificationId, setVerificationId] = useState("");
@@ -122,76 +119,73 @@ const [studentCode, setStudentCode] = useState("");
 
   /* ---------------- College Popup ---------------- */
 
- const openCollegePopup = useCallback(() => {
-  setStudentCode("");
-  setStep("studentCode");
-  setOpen(true);
-}, []);
+  const openCollegePopup = useCallback(() => {
+    setStudentCode("");
+    setStep("studentCode");
+    setOpen(true);
+  }, []);
 
   const handleGoogleSuccess = useCallback(
-  (googleUser) => {
-    setUser(googleUser);
+    (googleUser) => {
+      setUser(googleUser);
 
-    // Show college popup only after successful Google login
-    openCollegePopup();
-  },
-  [openCollegePopup]
-);
+      // Show college popup only after successful Google login
+      openCollegePopup();
+    },
+    [openCollegePopup],
+  );
 
   /* ---------------- Session Restore ---------------- */
 
-// ---------------- Session Restore ----------------
+  // ---------------- Session Restore ----------------
 
-useEffect(() => {
-  const token = localStorage.getItem("dp_token");
+  useEffect(() => {
+    const token = localStorage.getItem("dp_token");
 
-  if (!token) {
-    setUser(false);
-    setReady(true);
-    return;
-  }
-
-  api.me()
-    .then((currentUser) => {
-      // Only restore the existing session.
-      // DO NOT open the college popup here.
-      setUser(currentUser);
-    })
-    .catch(() => {
-  localStorage.removeItem("dp_token");
-localStorage.removeItem("student_code");
-localStorage.removeItem("college_code");
-localStorage.removeItem("college_connected");
+    if (!token) {
       setUser(false);
-    })
-    .finally(() => {
       setReady(true);
-    });
-}, []);
+      return;
+    }
+
+    api
+      .me()
+      .then((currentUser) => {
+        // Only restore the existing session.
+        // DO NOT open the college popup here.
+        setUser(currentUser);
+      })
+      .catch(() => {
+        localStorage.removeItem("dp_token");
+        localStorage.removeItem("student_code");
+        localStorage.removeItem("college_code");
+        localStorage.removeItem("college_connected");
+        setUser(false);
+      })
+      .finally(() => {
+        setReady(true);
+      });
+  }, []);
 
   /* ---------------- Open Auth Popup ---------------- */
 
-  const openAuth = useCallback(
-    (onSuccess, adminLogin = false) => {
-      onSuccessRef.current =
-        typeof onSuccess === "function" ? onSuccess : null;
+  const openAuth = useCallback((onSuccess, adminLogin = false) => {
+    onSuccessRef.current = typeof onSuccess === "function" ? onSuccess : null;
 
-      setShowAdminLogin(adminLogin);
+    setShowAdminLogin(adminLogin);
 
-      setStep("phone");
-      setPhone("");
-      setOtp("");
-      setStudentCode("");
+    setStep("phone");
+    setPhone("");
+    setOtp("");
+    setStudentCode("");
 
-      setOb({
-        name: "",
-        dob: "",
-      });
+    setOb({
+      name: "",
+      dob: "",
+    });
 
-      setOpen(true);
-    },
-    []
-  );
+    setOpen(true);
+  }, []);
 
   /* ---------------- Close Auth Popup ---------------- */
 
@@ -201,14 +195,14 @@ localStorage.removeItem("college_connected");
 
   /* ---------------- Logout ---------------- */
 
-const logout = useCallback(() => {
-  localStorage.removeItem("dp_token");
-  localStorage.removeItem("student_code");
-  localStorage.removeItem("college_code");
-  localStorage.removeItem("college_connected");
+  const logout = useCallback(() => {
+    localStorage.removeItem("dp_token");
+    localStorage.removeItem("student_code");
+    localStorage.removeItem("college_code");
+    localStorage.removeItem("college_connected");
 
-  setUser(false);
-}, []);
+    setUser(false);
+  }, []);
 
   /* ---------------- Refresh User ---------------- */
 
@@ -235,34 +229,34 @@ const logout = useCallback(() => {
   /* ---------------- After Authentication ---------------- */
 
   const afterAuth = async (response) => {
-  const token = response.access_token || response.token;
+    const token = response.access_token || response.token;
 
-  if (!token) {
-    throw new Error("Authentication token not received");
-  }
-
-  localStorage.setItem("dp_token", token);
-
-  try {
-    const currentUser = await api.me();
-
-    setUser(currentUser);
-
-    if (response.isNewUser) {
-      setOb({
-        name: currentUser?.name || "",
-        dob: "",
-      });
-
-      setStep("onboarding");
-    } else {
-      openCollegePopup();
+    if (!token) {
+      throw new Error("Authentication token not received");
     }
-  } catch (error) {
-    console.error("Failed to fetch user after OTP:", error);
-    throw error;
-  }
-};
+
+    localStorage.setItem("dp_token", token);
+
+    try {
+      const currentUser = await api.me();
+
+      setUser(currentUser);
+
+      if (response.isNewUser) {
+        setOb({
+          name: currentUser?.name || "",
+          dob: "",
+        });
+
+        setStep("onboarding");
+      } else {
+        openCollegePopup();
+      }
+    } catch (error) {
+      console.error("Failed to fetch user after OTP:", error);
+      throw error;
+    }
+  };
 
   /* ---------------- Send OTP ---------------- */
 
@@ -279,30 +273,27 @@ const logout = useCallback(() => {
     try {
       const response = await api.otpSend(phone);
 
-console.log("OTP SEND RESPONSE:", response);
+      console.log("OTP SEND RESPONSE:", response);
 
-const verificationId =
-  response?.data?.verification_id ||
-  response?.verification_id ||
-  response?.verificationId ||
-  "";
+      const verificationId =
+        response?.data?.verification_id ||
+        response?.verification_id ||
+        response?.verificationId ||
+        "";
 
-console.log("VERIFICATION ID:", verificationId);
+      console.log("VERIFICATION ID:", verificationId);
 
-if (!verificationId) {
-  throw new Error("Verification ID was not returned by backend");
-}
+      if (!verificationId) {
+        throw new Error("Verification ID was not returned by backend");
+      }
 
-setVerificationId(verificationId);
+      setVerificationId(verificationId);
 
-setStep("otp");
+      setStep("otp");
 
-toast.success(response.demoHint || "OTP sent");
-
+      toast.success(response.demoHint || "OTP sent");
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Could not send OTP"
-      );
+      toast.error(error.response?.data?.detail || "Could not send OTP");
     } finally {
       setLoading(false);
     }
@@ -319,24 +310,15 @@ toast.success(response.demoHint || "OTP sent");
     setLoading(true);
 
     try {
-     const response = await api.otpVerify(
-  phone,
-  otp,
-  verificationId
-);
+      const response = await api.otpVerify(phone, otp, verificationId);
 
-console.log("OTP VERIFY RESPONSE:", response);
+      console.log("OTP VERIFY RESPONSE:", response);
 
-localStorage.setItem(
-  "dp_token",
-  response.access_token
-);
+      localStorage.setItem("dp_token", response.access_token);
 
       afterAuth(response);
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Invalid OTP"
-      );
+      toast.error(error.response?.data?.detail || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -344,85 +326,63 @@ localStorage.setItem(
 
   /* ---------------- College Continue ---------------- */
 
- const handleStudentCodeContinue = async () => {
-  const code = studentCode.trim().toUpperCase();
+  const handleStudentCodeContinue = async () => {
+    const code = studentCode.trim().toUpperCase();
 
-  if (!code) {
-    toast.error("Please enter your student code");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response =
-      await api.linkCollegeByStudentCode(code);
-
-    console.log(
-      "STUDENT CODE RESPONSE:",
-      response
-    );
-
-    localStorage.setItem(
-      "student_code",
-      code
-    );
-
-    localStorage.setItem(
-      "college_connected",
-      "true"
-    );
-
-    // Save college code if backend returns it
-    const collegeCodeFromResponse =
-      response?.college?.code ||
-      response?.college?.college_code;
-
-    if (collegeCodeFromResponse) {
-      localStorage.setItem(
-        "college_code",
-        collegeCodeFromResponse
-      );
+    if (!code) {
+      toast.error("Please enter your student code");
+      return;
     }
 
-    toast.success(
-      "Student linked successfully"
-    );
+    setLoading(true);
+
+    try {
+      const response = await api.linkCollegeByStudentCode(code);
+
+      console.log("STUDENT CODE RESPONSE:", response);
+
+      localStorage.setItem("student_code", code);
+
+      localStorage.setItem("college_connected", "true");
+
+      // Save college code if backend returns it
+      const collegeCodeFromResponse =
+        response?.college?.code || response?.college?.college_code;
+
+      if (collegeCodeFromResponse) {
+        localStorage.setItem("college_code", collegeCodeFromResponse);
+      }
+
+      toast.success("Student linked successfully");
+
+      setOpen(false);
+
+      runSuccess(user);
+    } catch (error) {
+      console.error("Student code linking failed:", error);
+
+      toast.error(
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          "Invalid student code",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------------- Continue Without College ---------------- */
+
+  const handleContinueWithoutCollege = () => {
+    localStorage.removeItem("student_code");
+    localStorage.removeItem("college_code");
+
+    localStorage.setItem("college_connected", "skipped");
 
     setOpen(false);
 
     runSuccess(user);
-  } catch (error) {
-    console.error(
-      "Student code linking failed:",
-      error
-    );
-
-    toast.error(
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      "Invalid student code"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
-  /* ---------------- Continue Without College ---------------- */
-
- const handleContinueWithoutCollege = () => {
-  localStorage.removeItem("student_code");
-  localStorage.removeItem("college_code");
-
-  localStorage.setItem(
-    "college_connected",
-    "skipped"
-  );
-
-  setOpen(false);
-
-  runSuccess(user);
-};
+  };
 
   /* ---------------- Complete Onboarding ---------------- */
 
@@ -440,22 +400,16 @@ localStorage.setItem(
     setLoading(true);
 
     try {
-      const response = await api.onboarding(
-        ob.name.trim(),
-        ob.dob
-      );
+      const response = await api.onboarding(ob.name.trim(), ob.dob);
 
       setUser(response.user);
 
-      toast.success(
-        `Welcome, ${response.user.name.split(" ")[0]}!`
-      );
+      toast.success(`Welcome, ${response.user.name.split(" ")[0]}!`);
 
       openCollegePopup();
     } catch (error) {
       toast.error(
-        error.response?.data?.detail ||
-          "Could not save your details"
+        error.response?.data?.detail || "Could not save your details",
       );
     } finally {
       setLoading(false);
@@ -463,19 +417,19 @@ localStorage.setItem(
   };
 
   return (
-   <AuthContext.Provider
-  value={{
-    user,
-    isAuthed: !!user,
-    ready,
-    openAuth,
-    closeAuth,
-    logout,
-    refresh,
-    setUser,
-    handleGoogleSuccess,
-  }}
->
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthed: !!user,
+        ready,
+        openAuth,
+        closeAuth,
+        logout,
+        refresh,
+        setUser,
+        handleGoogleSuccess,
+      }}
+    >
       {children}
 
       <AnimatePresence>
@@ -498,14 +452,12 @@ localStorage.setItem(
             data-testid="auth-modal-overlay"
           >
             {/* Background Overlay */}
-           <div
-  className="absolute inset-0 bg-white/10 backdrop-blur-md"
-  onClick={
-    step === "phone" || step === "otp"
-      ? closeAuth
-      : undefined
-  }
-/>
+            <div
+              className="absolute inset-0 bg-white/10 backdrop-blur-md"
+              onClick={
+                step === "phone" || step === "otp" ? closeAuth : undefined
+              }
+            />
 
             {/* Main Popup */}
             <motion.div
@@ -530,7 +482,7 @@ localStorage.setItem(
               }}
               data-testid="auth-modal"
               onClick={(event) => event.stopPropagation()}
-             className="
+              className="
   relative
   z-10
   w-full
@@ -547,8 +499,8 @@ localStorage.setItem(
 "
             >
               {/* Top Glow */}
-             <div
-  className="
+              <div
+                className="
     pointer-events-none
     absolute
     -top-24
@@ -560,7 +512,7 @@ localStorage.setItem(
     bg-blue-300/20
     blur-3xl
   "
-/>
+              />
 
               {/* Close Button */}
               <button
@@ -609,8 +561,7 @@ localStorage.setItem(
                       </h3>
 
                       <p className="mt-2 text-sm text-slate-600">
-                        One login for your entire Career Operating
-                        System.
+                        One login for your entire Career Operating System.
                       </p>
 
                       {/* Google Login */}
@@ -683,9 +634,7 @@ localStorage.setItem(
                       {/* Divider */}
                       <div className="my-5 flex items-center gap-3 text-xs font-medium text-slate-600">
                         <span className="h-px flex-1 bg-slate-200" />
-
                         OR
-
                         <span className="h-px flex-1 bg-slate-200" />
                       </div>
 
@@ -712,7 +661,6 @@ localStorage.setItem(
                         </span>
 
                         <input
-              
                           type="tel"
                           inputMode="numeric"
                           placeholder="98765 43210"
@@ -721,7 +669,7 @@ localStorage.setItem(
                             setPhone(
                               event.target.value
                                 .replace(/[^\d ]/g, "")
-                                .slice(0, 11)
+                                .slice(0, 11),
                             )
                           }
                           onKeyDown={(event) => {
@@ -784,8 +732,7 @@ localStorage.setItem(
                       </button>
 
                       <p className="mt-4 text-xs text-slate-600">
-                        By continuing you agree to our Terms & Privacy
-                        Policy.
+                        By continuing you agree to our Terms & Privacy Policy.
                       </p>
                     </motion.div>
                   )}
@@ -831,11 +778,7 @@ localStorage.setItem(
                         className="mt-6 flex justify-center"
                         data-testid="auth-otp-input"
                       >
-                        <InputOTP
-                          maxLength={6}
-                          value={otp}
-                          onChange={setOtp}
-                        >
+                        <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                           <InputOTPGroup>
                             {[0, 1, 2, 3, 4, 5].map((index) => (
                               <InputOTPSlot
@@ -909,48 +852,45 @@ localStorage.setItem(
 
                   {/* ---------------- COLLEGE STEP ---------------- */}
 
-                {step === "studentCode" && (
-  <motion.div
-    key="studentCode"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.2 }}
-    className="mt-6 w-full"
-  >
-    <h3 className="text-2xl font-bold text-slate-900">
-      Enter your student code
-    </h3>
+                  {step === "studentCode" && (
+                    <motion.div
+                      key="studentCode"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-6 w-full"
+                    >
+                      <h3 className="text-2xl font-bold text-slate-900">
+                        Enter your student code
+                      </h3>
 
-    <p className="mt-2 text-sm text-slate-500">
-      Enter your student code to connect your
-      college account.
-    </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Enter your student code to connect your college account.
+                      </p>
 
-    <div className="mt-6">
-      <input
-        type="text"
-        placeholder="Enter student code"
-        value={studentCode}
-        onChange={(event) =>
-          setStudentCode(
-            event.target.value.toUpperCase()
-          )
-        }
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            handleStudentCodeContinue();
-          }
-        }}
-        className={field}
-      />
-    </div>
+                      <div className="mt-6">
+                        <input
+                          type="text"
+                          placeholder="Enter student code"
+                          value={studentCode}
+                          onChange={(event) =>
+                            setStudentCode(event.target.value.toUpperCase())
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              handleStudentCodeContinue();
+                            }
+                          }}
+                          className={field}
+                        />
+                      </div>
 
-    <button
-      type="button"
-      onClick={handleStudentCodeContinue}
-      disabled={loading}
-      className="
+                      <button
+                        type="button"
+                        onClick={handleStudentCodeContinue}
+                        disabled={loading}
+                        className="
         mt-4
         flex
         w-full
@@ -974,21 +914,21 @@ localStorage.setItem(
         disabled:cursor-not-allowed
         disabled:opacity-60
       "
-    >
-      {loading ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
-      ) : (
-        <>
-          Continue
-          <ArrowRight className="h-4 w-4" />
-        </>
-      )}
-    </button>
+                      >
+                        {loading ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            Continue
+                            <ArrowRight className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
 
-    <button
-      type="button"
-      onClick={handleContinueWithoutCollege}
-      className="
+                      <button
+                        type="button"
+                        onClick={handleContinueWithoutCollege}
+                        className="
         mt-4
         w-full
         rounded-2xl
@@ -1003,11 +943,11 @@ localStorage.setItem(
         transition
         hover:bg-slate-50
       "
-    >
-      Continue without student code
-    </button>
-  </motion.div>
-)}
+                      >
+                        Continue without student code
+                      </button>
+                    </motion.div>
+                  )}
 
                   {/* ---------------- ONBOARDING STEP ---------------- */}
 
@@ -1034,8 +974,7 @@ localStorage.setItem(
                         </h3>
 
                         <p className="mx-auto mt-2 max-w-xs text-sm text-slate-500">
-                          Just two quick things to personalise your
-                          journey.
+                          Just two quick things to personalise your journey.
                         </p>
                       </div>
 
@@ -1085,9 +1024,7 @@ localStorage.setItem(
                                 }))
                               }
                               data-testid="onboarding-dob"
-                              max={new Date()
-                                .toISOString()
-                                .slice(0, 10)}
+                              max={new Date().toISOString().slice(0, 10)}
                             />
                           </div>
 

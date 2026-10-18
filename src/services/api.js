@@ -17,15 +17,22 @@ const MYMENTOR_API = `${MYMENTOR_API_URL}/api`;
 const CAREERCOMPASS_API = `${CAREERCOMPASS_API_URL}/api`;
 
 
+
 const hostname = window.location.hostname;
+
+const isLocalhost =
+  hostname === "localhost" ||
+  hostname === "127.0.0.1";
 
 const isCareerCompass =
   hostname === "carrercompass.com" ||
   hostname === "www.carrercompass.com";
 
-const API = isCareerCompass
-  ? CAREERCOMPASS_API
-  : MYMENTOR_API;
+const API =
+  isLocalhost || isCareerCompass
+    ? CAREERCOMPASS_API
+    : MYMENTOR_API;
+
 
 // ==================================================
 // AXIOS CLIENTS
