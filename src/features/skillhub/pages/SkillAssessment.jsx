@@ -1,612 +1,169 @@
-import { useState } from "react";
-import { motion } from "framer-motion"; 
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
   Brain,
   CheckCircle2,
-  ChevronLeft,
   Code2,
   Lightbulb,
   Play,
   Send,
+  Users,
+  Briefcase,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
+
 import Shell from "@/features/skillhub/components/Shell";
+import { api } from "../../../services/api";
 
 // ======================================================
-// DUMMY DATA
-// Later this entire object can come from API
+// CATEGORY ICON
 // ======================================================
 
-const DUMMY_ASSESSMENTS = {
-  "technical-skills": {
-    title: "Technical Skills",
-    description: "Programming and technical knowledge-based challenges.",
-    icon: Code2,
-    color: "cyan",
-    questions: [
-      {
-        id: "tech-1",
-        title: "Reverse a String",
-        problem:
-          "Write a program that takes a string as input and prints the string in reverse order.",
-        instructions:
-          "Read a string from the user and print the reversed string. Do not use a built-in reverse function.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        String input = sc.nextLine();
-
-        // Write your code here
-
-    }
-}`,
-      },
-      {
-        id: "tech-2",
-        title: "Find the Largest Number",
-        problem:
-          "Given three integers, find and print the largest number.",
-        instructions:
-          "Read three integers and determine the largest value using conditional logic.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        int a = sc.nextInt();
-        int b = sc.nextInt();
-        int c = sc.nextInt();
-
-        // Write your code here
-
-    }
-}`,
-      },
-      {
-        id: "tech-3",
-        title: "Count Vowels",
-        problem:
-          "Write a program to count the number of vowels present in a given string.",
-        instructions:
-          "Consider a, e, i, o and u as vowels. The program should work for both uppercase and lowercase characters.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        String input = sc.nextLine();
-
-        // Write your code here
-
-    }
-}`,
-      },
-      {
-        id: "tech-4",
-        title: "Check Prime Number",
-        problem:
-          "Write a program to determine whether a given number is prime.",
-        instructions:
-          "Print Prime if the number is prime; otherwise print Not Prime.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        int number = sc.nextInt();
-
-        // Write your code here
-
-    }
-}`,
-      },
-      {
-        id: "tech-5",
-        title: "Find Duplicate Elements",
-        problem:
-          "Given an integer array, find and print the duplicate elements.",
-        instructions:
-          "Read the array and identify values that occur more than once.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-
-        // Read array and find duplicates
-
-    }
-}`,
-      },
-    ],
-  },
-
-  "problem-solving": {
-    title: "Problem Solving",
-    description: "Logic, algorithms and practical problem-solving challenges.",
-    icon: Lightbulb,
-    color: "violet",
-    questions: [
-      {
-        id: "problem-1",
-        title: "Two Sum",
-        problem:
-          "Given an array of integers and a target value, find two numbers whose sum equals the target.",
-        instructions:
-          "Print the indexes of the two numbers that produce the target sum.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "problem-2",
-        title: "Missing Number",
-        problem:
-          "An array contains numbers from 1 to N with one number missing. Find the missing number.",
-        instructions:
-          "Return the missing number without sorting the array.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "problem-3",
-        title: "Palindrome Number",
-        problem:
-          "Determine whether a given integer reads the same forward and backward.",
-        instructions:
-          "Print Palindrome or Not Palindrome.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "problem-4",
-        title: "Frequency of Elements",
-        problem:
-          "Given an integer array, find the frequency of each element.",
-        instructions:
-          "Print every unique number along with the number of times it appears.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "problem-5",
-        title: "Maximum Subarray Sum",
-        problem:
-          "Find the contiguous subarray with the maximum possible sum.",
-        instructions:
-          "Print the maximum subarray sum.",
-        language: "Java",
-        difficulty: "Advanced",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-    ],
-  },
-
-  "critical-thinking": {
-    title: "Critical Thinking",
-    description: "Reasoning, analysis and decision-making challenges.",
-    icon: Brain,
-    color: "purple",
-    questions: [
-      {
-        id: "critical-1",
-        title: "Analyze a Sorting Problem",
-        problem:
-          "A program sorts a large list of numbers but becomes very slow as the input grows.",
-        instructions:
-          "Explain and implement a more efficient approach for handling large inputs.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Analyze the problem
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "critical-2",
-        title: "Optimize Search",
-        problem:
-          "A system searches through thousands of sorted records for a specific value.",
-        instructions:
-          "Implement an efficient search algorithm and explain why it is suitable.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Write your solution here
-
-    }
-}`,
-      },
-      {
-        id: "critical-3",
-        title: "Detect Invalid Input",
-        problem:
-          "A program accepts numbers from users, but invalid values can cause unexpected behavior.",
-        instructions:
-          "Write a solution that validates the input before processing it.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Validate input
-
-    }
-}`,
-      },
-      {
-        id: "critical-4",
-        title: "Choose the Right Data Structure",
-        problem:
-          "A system frequently searches for users by their unique ID.",
-        instructions:
-          "Choose a suitable data structure and implement a basic lookup operation.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Implement efficient lookup
-
-    }
-}`,
-      },
-      {
-        id: "critical-5",
-        title: "Debug the Logic",
-        problem:
-          "A program produces incorrect output even though it compiles successfully.",
-        instructions:
-          "Identify the logical problem and correct the implementation.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `public class Main {
-    public static void main(String[] args) {
-
-        int total = 10;
-        int count = 0;
-
-        // Find and fix the logic problem
-
-        System.out.println(total / count);
-    }
-}`,
-      },
-    ],
-  },
-
-  "interview-readiness": {
-    title: "Interview Readiness",
-    description:
-      "Interview preparation, technical explanation and workplace scenarios.",
-    icon: Code2,
-    color: "emerald",
-    questions: [
-      {
-        id: "interview-1",
-        title: "Implement a Simple API Model",
-        problem:
-          "Create a Java class representing a Student with name, email and age.",
-        instructions:
-          "Create the class with appropriate fields, constructor and getter methods.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `public class Main {
-
-    // Create Student class here
-
-    public static void main(String[] args) {
-
-    }
-}`,
-      },
-      {
-        id: "interview-2",
-        title: "StringBuilder Usage",
-        problem:
-          "Build a program that efficiently concatenates multiple strings.",
-        instructions:
-          "Use StringBuilder instead of repeatedly concatenating strings.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `public class Main {
-    public static void main(String[] args) {
-
-        // Use StringBuilder
-
-    }
-}`,
-      },
-      {
-        id: "interview-3",
-        title: "Exception Handling",
-        problem:
-          "Write a program that safely handles division by zero.",
-        instructions:
-          "Use Java exception handling and display a meaningful message.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `public class Main {
-    public static void main(String[] args) {
-
-        int a = 10;
-        int b = 0;
-
-        // Handle the exception
-
-    }
-}`,
-      },
-      {
-        id: "interview-4",
-        title: "Find Second Largest",
-        problem:
-          "Find the second largest number in an integer array.",
-        instructions:
-          "Solve the problem without sorting the complete array.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        int[] numbers = {10, 25, 5, 40, 30};
-
-        // Find second largest
-
-    }
-}`,
-      },
-      {
-        id: "interview-5",
-        title: "Object-Oriented Design",
-        problem:
-          "Create a simple BankAccount class with deposit and withdrawal operations.",
-        instructions:
-          "Use encapsulation and prevent withdrawal when the balance is insufficient.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `public class Main {
-
-    // Create BankAccount class
-
-    public static void main(String[] args) {
-
-    }
-}`,
-      },
-    ],
-  },
-
-  "soft-skills": {
-    title: "Soft Skills",
-    description:
-      "Communication, teamwork, leadership and professional situations.",
-    icon: Brain,
-    color: "orange",
-    questions: [
-      {
-        id: "soft-1",
-        title: "Team Communication",
-        problem:
-          "Write a program that stores team member names and prints them in a structured format.",
-        instructions:
-          "Focus on writing clean and readable code that another team member can easily understand.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        String[] team = {
-            "Arun",
-            "Priya",
-            "Rahul"
-        };
-
-        // Display team members
-
-    }
-}`,
-      },
-      {
-        id: "soft-2",
-        title: "Clear Information Processing",
-        problem:
-          "Create a program that accepts a list of tasks and displays them clearly.",
-        instructions:
-          "Organize the output so that another person can easily understand the task list.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Process and display tasks
-
-    }
-}`,
-      },
-      {
-        id: "soft-3",
-        title: "Prioritize Tasks",
-        problem:
-          "Given tasks with different priorities, display them from highest to lowest priority.",
-        instructions:
-          "Implement a simple sorting approach based on priority.",
-        language: "Java",
-        difficulty: "Intermediate",
-        points: 10,
-        starterCode: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-
-        // Process task priorities
-
-    }
-}`,
-      },
-      {
-        id: "soft-4",
-        title: "Collaborative Data Handling",
-        problem:
-          "Create a program that combines information from two team members.",
-        instructions:
-          "Write clean code that demonstrates how data can be combined and displayed.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `public class Main {
-    public static void main(String[] args) {
-
-        // Combine team information
-
-    }
-}`,
-      },
-      {
-        id: "soft-5",
-        title: "Problem Explanation",
-        problem:
-          "Create a program that calculates the average completion percentage of a team.",
-        instructions:
-          "Write readable code and clearly structure the calculation.",
-        language: "Java",
-        difficulty: "Beginner",
-        points: 10,
-        starterCode: `public class Main {
-    public static void main(String[] args) {
-
-        int[] completion = {
-            80, 70, 90
-        };
-
-        // Calculate average
-
-    }
-}`,
-      },
-    ],
-  },
+const getCategoryIcon = (name = "") => {
+  const value = name.toLowerCase();
+
+  if (
+    value.includes("technical") ||
+    value.includes("programming") ||
+    value.includes("coding")
+  ) {
+    return Code2;
+  }
+
+  if (value.includes("problem")) {
+    return Lightbulb;
+  }
+
+  if (value.includes("critical")) {
+    return Brain;
+  }
+
+  if (value.includes("interview")) {
+    return Briefcase;
+  }
+
+  if (value.includes("soft")) {
+    return Users;
+  }
+
+  return Brain;
 };
 
 // ======================================================
-// SECTION LIST
+// NORMALIZE QUESTION
 // ======================================================
 
-const SECTIONS = Object.entries(DUMMY_ASSESSMENTS).map(
-  ([id, section]) => ({
-    id,
-    ...section,
-  })
-);
+const normalizeQuestion = (question) => ({
+  id: question.id,
+  categoryId: question.category_id,
+  questionOrder: question.question_order ?? 0,
+
+  title: question.title || "",
+  problem: question.problem || "",
+  instructions: question.instructions || "",
+
+  language: question.language || "Java",
+  difficulty: question.difficulty || "Beginner",
+  points: question.points ?? 10,
+
+  starterCode: question.starter_code || "",
+
+  // These are kept internally only.
+  // They are NOT shown to the student.
+  expectedOutput: question.expected_answer || "",
+  evaluationCriteria: question.evaluation_criteria || "",
+
+  isActive: question.is_active !== false,
+});
+
+// ======================================================
+// NORMALIZE CATEGORY
+// ======================================================
+
+const normalizeCategory = (category) => {
+  const name =
+    category.name ||
+    category.title ||
+    category.category_name ||
+    "Skill Assessment";
+
+  return {
+    id: category.id,
+    name,
+
+    description:
+      category.description ||
+      "Complete the questions in this assessment category.",
+
+    icon: getCategoryIcon(name),
+
+    questions: [],
+  };
+};
+
+// ======================================================
+// FORMAT API RESULT
+// ======================================================
+
+const formatApiResult = (result, fallbackMessage) => {
+  if (result === null || result === undefined) {
+    return fallbackMessage;
+  }
+
+  if (typeof result === "string") {
+    return result;
+  }
+
+  if (typeof result === "number" || typeof result === "boolean") {
+    return String(result);
+  }
+
+  // Common response fields
+  const directMessage =
+    result?.message ??
+    result?.feedback ??
+    result?.output ??
+    result?.stdout ??
+    result?.result ??
+    result?.detail;
+
+  if (directMessage !== undefined && directMessage !== null) {
+    if (typeof directMessage === "string") {
+      return directMessage;
+    }
+
+    return JSON.stringify(directMessage, null, 2);
+  }
+
+  return JSON.stringify(result, null, 2);
+};
 
 // ======================================================
 // COMPONENT
 // ======================================================
 
 export default function SkillAssessment() {
-  const [selectedSection, setSelectedSection] = useState(null);
+  // ====================================================
+  // API STATE
+  // ====================================================
+
+  const [categories, setCategories] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  const [retrying, setRetrying] = useState(false);
+
+  // ====================================================
+  // ASSESSMENT STATE
+  // ====================================================
+
+  const [selectedCategoryId, setSelectedCategoryId] =
+    useState(null);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
@@ -616,61 +173,206 @@ export default function SkillAssessment() {
 
   const [runMessage, setRunMessage] = useState("");
 
-  const [languageFilter, setLanguageFilter] = useState("All");
-const [difficultyFilter, setDifficultyFilter] = useState("All");
+  const [running, setRunning] = useState(false);
 
-  const section = selectedSection
-  ? DUMMY_ASSESSMENTS[selectedSection]
-  : null;
+  const [submitting, setSubmitting] = useState(false);
 
-const question = section?.questions[currentQuestion];
-
-const allChallenges = SECTIONS.flatMap((section) =>
-  section.questions.map((question, index) => ({
-    ...question,
-    sectionId: section.id,
-    sectionTitle: section.title,
-    questionIndex: index,
-  }))
-);
-
-const filteredChallenges = allChallenges.filter((challenge) => {
-  const matchesLanguage =
-    languageFilter === "All" ||
-    challenge.language === languageFilter;
-
-  const matchesDifficulty =
-    difficultyFilter === "All" ||
-    challenge.difficulty === difficultyFilter;
-
-  return matchesLanguage && matchesDifficulty;
-});
-
-const dailyChallenge =
-  allChallenges[
-    Math.floor(Date.now() / 86400000) % allChallenges.length
-  ];
-
-const openChallenge = (challenge) => {
-  setSelectedSection(challenge.sectionId);
-  setCurrentQuestion(challenge.questionIndex);
-  setCode("");
-  setRunMessage("");
-};
-
-  // Initialize code whenever question changes
-  const currentCode =
-  code || question?.starterCode || "";
+  const [assessmentFinished, setAssessmentFinished] =
+    useState(false);
 
   // ====================================================
-  // SELECT SECTION
+  // LOAD ASSESSMENT
   // ====================================================
 
-  const handleSectionChange = (sectionId) => {
-    setSelectedSection(sectionId);
+  const loadAssessment = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // ------------------------------------------------
+      // GET CATEGORIES
+      // ------------------------------------------------
+
+      const categoryResponse =
+        await api.getSkillAssessmentCategories();
+
+      const rawCategories =
+        Array.isArray(categoryResponse)
+          ? categoryResponse
+          : Array.isArray(categoryResponse?.data)
+          ? categoryResponse.data
+          : [];
+
+      if (!rawCategories.length) {
+        setCategories([]);
+        return;
+      }
+
+      // ------------------------------------------------
+      // NORMALIZE CATEGORIES
+      // ------------------------------------------------
+
+      const normalizedCategories =
+        rawCategories.map(normalizeCategory);
+
+      // ------------------------------------------------
+      // GET QUESTIONS FOR EACH CATEGORY
+      // ------------------------------------------------
+
+      const categoriesWithQuestions =
+        await Promise.all(
+          normalizedCategories.map(
+            async (category) => {
+              try {
+                const response =
+                  await api.getSkillAssessmentCategoryQuestions(
+                    category.id
+                  );
+
+                const rawQuestions =
+                  Array.isArray(response)
+                    ? response
+                    : Array.isArray(response?.data)
+                    ? response.data
+                    : [];
+
+                const questions =
+                  rawQuestions
+                    .filter(
+                      (question) =>
+                        question.is_active !== false
+                    )
+                    .sort(
+                      (a, b) =>
+                        (a.question_order ?? 0) -
+                        (b.question_order ?? 0)
+                    )
+                    .map(normalizeQuestion);
+
+                return {
+                  ...category,
+                  questions,
+                };
+              } catch (categoryError) {
+                console.error(
+                  `Failed to load questions for category ${category.id}`,
+                  categoryError
+                );
+
+                return {
+                  ...category,
+                  questions: [],
+                  loadError:
+                    categoryError?.response?.data
+                      ?.detail ||
+                    categoryError?.response?.data
+                      ?.message ||
+                    categoryError?.message ||
+                    "Unable to load questions.",
+                };
+              }
+            }
+          )
+        );
+
+      setCategories(categoriesWithQuestions);
+    } catch (err) {
+      console.error(
+        "Failed to load skill assessment:",
+        err
+      );
+
+      const status = err?.response?.status;
+
+      if (status === 401) {
+        setError(
+          "Your login session has expired. Please sign in again."
+        );
+      } else if (status === 403) {
+        setError(
+          "Your account does not have permission to view skill assessment questions."
+        );
+      } else {
+        setError(
+          err?.response?.data?.detail ||
+            err?.response?.data?.message ||
+            err?.message ||
+            "Unable to load assessment questions."
+        );
+      }
+    } finally {
+      setLoading(false);
+      setRetrying(false);
+    }
+  };
+
+  // ====================================================
+  // INITIAL LOAD
+  // ====================================================
+
+  useEffect(() => {
+    loadAssessment();
+  }, []);
+
+  // ====================================================
+  // SELECTED CATEGORY
+  // ====================================================
+
+  const selectedCategory = useMemo(() => {
+    return categories.find(
+      (category) =>
+        category.id === selectedCategoryId
+    );
+  }, [categories, selectedCategoryId]);
+
+  // ====================================================
+  // CURRENT QUESTION
+  // ====================================================
+
+  const question =
+    selectedCategory?.questions?.[currentQuestion] ||
+    null;
+
+  // ====================================================
+  // TOTAL QUESTIONS
+  // ====================================================
+
+  const totalQuestions = useMemo(() => {
+    return categories.reduce(
+      (total, category) =>
+        total + (category.questions?.length || 0),
+      0
+    );
+  }, [categories]);
+
+  // ====================================================
+  // COMPLETED QUESTIONS
+  // ====================================================
+
+  const completedQuestions =
+    Object.values(submitted).filter(Boolean).length;
+
+  // ====================================================
+  // OPEN CATEGORY
+  // ====================================================
+
+  const handleCategoryChange = (categoryId) => {
+    const category = categories.find(
+      (item) => item.id === categoryId
+    );
+
+    if (!category) {
+      return;
+    }
+
+    setSelectedCategoryId(categoryId);
     setCurrentQuestion(0);
-    setCode("");
+    setAssessmentFinished(false);
     setRunMessage("");
+
+    const firstQuestion = category.questions?.[0];
+
+    setCode(firstQuestion?.starterCode || "");
   };
 
   // ====================================================
@@ -678,547 +380,1010 @@ const openChallenge = (challenge) => {
   // ====================================================
 
   const handleQuestionChange = (index) => {
+    if (!selectedCategory) {
+      return;
+    }
+
+    if (
+      index < 0 ||
+      index >= selectedCategory.questions.length
+    ) {
+      return;
+    }
+
+    const nextQuestion =
+      selectedCategory.questions[index];
+
     setCurrentQuestion(index);
-    setCode("");
+
+    setCode(nextQuestion?.starterCode || "");
+
     setRunMessage("");
   };
 
+  // ====================================================
+  // NEXT
+  // ====================================================
+
   const handleNext = () => {
-  const isLastQuestion =
-    currentQuestion === section.questions.length - 1;
+    if (!selectedCategory || !question) {
+      return;
+    }
 
-  const isLastSection =
-    selectedSection === SECTIONS[SECTIONS.length - 1].id;
+    const isLastQuestion =
+      currentQuestion ===
+      selectedCategory.questions.length - 1;
 
-  // Move to next question
-  if (!isLastQuestion) {
-    handleQuestionChange(currentQuestion + 1);
-    return;
-  }
+    // -----------------------------------------------
+    // NEXT QUESTION
+    // -----------------------------------------------
 
-  // Last question of current section
-  if (!isLastSection) {
-    const currentSectionIndex = SECTIONS.findIndex(
-      (item) => item.id === selectedSection
+    if (!isLastQuestion) {
+      handleQuestionChange(currentQuestion + 1);
+      return;
+    }
+
+    // -----------------------------------------------
+    // NEXT CATEGORY
+    // -----------------------------------------------
+
+    const currentCategoryIndex =
+      categories.findIndex(
+        (category) =>
+          category.id === selectedCategory.id
+      );
+
+    const nextCategory = categories
+      .slice(currentCategoryIndex + 1)
+      .find(
+        (category) =>
+          category.questions?.length > 0
+      );
+
+    if (nextCategory) {
+      setSelectedCategoryId(nextCategory.id);
+      setCurrentQuestion(0);
+
+      setCode(
+        nextCategory.questions[0]?.starterCode || ""
+      );
+
+      setRunMessage("");
+
+      return;
+    }
+
+    // -----------------------------------------------
+    // FINISHED
+    // -----------------------------------------------
+
+    setAssessmentFinished(true);
+
+    setRunMessage(
+      "Assessment completed successfully."
+    );
+  };
+
+  // ====================================================
+  // PREVIOUS
+  // ====================================================
+
+  const handlePrevious = () => {
+    if (!selectedCategory || !question) {
+      return;
+    }
+
+    // -----------------------------------------------
+    // PREVIOUS QUESTION
+    // -----------------------------------------------
+
+    if (currentQuestion > 0) {
+      handleQuestionChange(currentQuestion - 1);
+      return;
+    }
+
+    // -----------------------------------------------
+    // PREVIOUS CATEGORY
+    // -----------------------------------------------
+
+    const currentCategoryIndex =
+      categories.findIndex(
+        (category) =>
+          category.id === selectedCategory.id
+      );
+
+    const previousCategories = categories.slice(
+      0,
+      currentCategoryIndex
     );
 
-    const nextSection = SECTIONS[currentSectionIndex + 1];
+    const previousCategory = [
+      ...previousCategories,
+    ]
+      .reverse()
+      .find(
+        (category) =>
+          category.questions?.length > 0
+      );
 
-    setSelectedSection(nextSection.id);
+    if (!previousCategory) {
+      return;
+    }
+
+    const lastQuestionIndex =
+      previousCategory.questions.length - 1;
+
+    const previousQuestion =
+      previousCategory.questions[
+        lastQuestionIndex
+      ];
+
+    setSelectedCategoryId(previousCategory.id);
+
+    setCurrentQuestion(lastQuestionIndex);
+
+    setCode(
+      previousQuestion?.starterCode || ""
+    );
+
+    setRunMessage("");
+  };
+
+  // ====================================================
+  // RUN CODE
+  // ====================================================
+
+  const handleRunCode = async () => {
+    if (!question?.id) {
+      setRunMessage("Question ID is missing.");
+      return;
+    }
+
+    if (!code.trim()) {
+      setRunMessage("Please enter some code first.");
+      return;
+    }
+
+    try {
+      setRunning(true);
+      setRunMessage("Running code...");
+
+      /*
+       * IMPORTANT:
+       *
+       * Skill Assessment uses:
+       *
+       * POST
+       * /skill-assessment/questions/{question_id}/run
+       *
+       * Body:
+       * {
+       *   language: "...",
+       *   code: "..."
+       * }
+       *
+       * No checkpoint_id is required.
+       */
+
+      const result =
+        await api.runSkillAssessmentQuestion(
+          question.id,
+          question.language || "Java",
+          code
+        );
+
+      console.log(
+        "SKILL ASSESSMENT RUN RESPONSE:",
+        result
+      );
+
+      setRunMessage(
+        formatApiResult(
+          result,
+          "Code executed successfully."
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Skill assessment run failed:",
+        error
+      );
+
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to run code.";
+
+      setRunMessage(String(message));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  // ====================================================
+  // SUBMIT CODE
+  // ====================================================
+
+  const handleSubmit = async () => {
+    if (!question?.id) {
+      setRunMessage("Question ID is missing.");
+      return;
+    }
+
+    if (!code.trim()) {
+      setRunMessage("Please enter some code first.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setRunMessage("Submitting solution...");
+
+      /*
+       * IMPORTANT:
+       *
+       * Skill Assessment uses:
+       *
+       * POST
+       * /skill-assessment/questions/{question_id}/submit
+       *
+       * Body:
+       * {
+       *   language: "...",
+       *   code: "..."
+       * }
+       *
+       * No checkpoint_id is required.
+       */
+
+      const result =
+        await api.submitSkillAssessmentQuestion(
+          question.id,
+          question.language || "Java",
+          code
+        );
+
+      console.log(
+        "SKILL ASSESSMENT SUBMIT RESPONSE:",
+        result
+      );
+
+      setRunMessage(
+        formatApiResult(
+          result,
+          "Solution submitted successfully."
+        )
+      );
+
+      // Mark question as submitted
+      setSubmitted((previous) => ({
+        ...previous,
+        [question.id]: true,
+      }));
+    } catch (error) {
+      console.error(
+        "Skill assessment submit failed:",
+        error
+      );
+
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to submit solution.";
+
+      setRunMessage(String(message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ====================================================
+  // RESET CODE
+  // ====================================================
+
+  const handleResetCode = () => {
+    setCode(question?.starterCode || "");
+    setRunMessage("");
+  };
+
+  // ====================================================
+  // RETRY
+  // ====================================================
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await loadAssessment();
+  };
+
+  // ====================================================
+  // BACK TO CATEGORIES
+  // ====================================================
+
+  const handleBackToCategories = () => {
+    setSelectedCategoryId(null);
     setCurrentQuestion(0);
     setCode("");
     setRunMessage("");
-
-    return;
-  }
-
-  // All sections completed
-  setRunMessage(
-    "Assessment completed successfully. Your final score will be calculated."
-  );
-};
-
-
-const handlePrevious = () => {
-  // Go to previous question in the same section
-  if (currentQuestion > 0) {
-    handleQuestionChange(currentQuestion - 1);
-    return;
-  }
-
-  // If first question of current section,
-  // move to the previous section's last question
-  const currentSectionIndex = SECTIONS.findIndex(
-    (item) => item.id === selectedSection
-  );
-
-  if (currentSectionIndex > 0) {
-    const previousSection =
-      SECTIONS[currentSectionIndex - 1];
-
-    setSelectedSection(previousSection.id);
-
-    setCurrentQuestion(
-      previousSection.questions.length - 1
-    );
-
-    setCode("");
-    setRunMessage("");
-  }
-};
-
-  // ====================================================
-  // RUN CODE - DUMMY FOR NOW
-  // ====================================================
-
-  const handleRunCode = () => {
-    setRunMessage(
-      "Code execution is currently in demo mode. API integration will be added later."
-    );
+    setAssessmentFinished(false);
   };
 
   // ====================================================
-  // SUBMIT - DUMMY FOR NOW
+  // LOADING
   // ====================================================
 
-  const handleSubmit = () => {
-    setSubmitted((previous) => ({
-      ...previous,
-      [question.id]: true,
-    }));
+  if (loading) {
+    return (
+      <Shell>
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#020617]">
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10">
+              <RefreshCw className="h-6 w-6 animate-spin text-cyan-400" />
+            </div>
 
-    setRunMessage(
-      "Answer submitted successfully. Score calculation will be connected to the API later."
-    );
-  };
+            <h2 className="mt-5 text-xl font-bold text-white">
+              Loading Skill Assessment
+            </h2>
 
-  if (!selectedSection) {
-  return (
-    <Shell>
-      <div className="min-h-[calc(100vh-80px)] space-y-8 bg-[#020617] p-6 lg:p-2">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-cyan-400">
-            Test Your Skills
-          </p>
-
-          <h1 className="mt-3 text-3xl font-black text-white">
-            Skill Assessment
-          </h1>
-
-          <p className="mt-3 text-slate-400">
-            Choose a category to start your assessment.
-          </p>
-        </div>
-
-
-        
-
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {SECTIONS.map((item, index) => {
-            const Icon = item.icon;
-
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.08 }}
-                className="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/10 via-violet-500/10 to-slate-900 p-6"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
-                  <Icon className="h-6 w-6" />
-                </div>
-
-                <h2 className="mt-5 text-xl font-bold text-white">
-                  {item.title}
-                </h2>
-
-                <p className="mt-3 text-sm leading-6 text-slate-400">
-                  {item.description}
-                </p>
-
-                <div className="mt-5 flex justify-between text-sm text-slate-400">
-                  <span>{item.questions.length} Questions</span>
-                  <span>
-                    {item.questions.reduce(
-                      (total, q) => total + q.points,
-                      0
-                    )} Points
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSectionChange(item.id)}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-slate-950 hover:bg-cyan-100"
-                >
-                  <Play className="h-4 w-4" />
-                  Start Assessment
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </Shell>
-  );
-}
-
- 
-  return (
-    <Shell>
-      <div className="flex h-[calc(100vh-80px)] min-h-0 flex-col overflow-hidden bg-[#020617]">
-
-        {/* Back to Sections */}
-        <div className="shrink-0 border-b border-white/10 bg-[#0b1120] px-5 py-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedSection(null);
-              setCurrentQuestion(0);
-              setCode("");
-              setRunMessage("");
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Sections
-          </button>
-        </div>
-
-
-      {/* ==================================================
-          TOP ASSESSMENT HEADER
-      ================================================== */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
-
-        <div className="flex items-center gap-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-400/10 text-cyan-400 ring-1 ring-cyan-400/20">
-            <Code2 className="h-5 w-5" />
-          </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
-              Skill Assessment
+            <p className="mt-2 text-sm text-slate-400">
+              Loading questions created by your
+              administrator...
             </p>
-
-            <h1 className="text-lg font-black text-white">
-              {section.title}
-            </h1>
           </div>
         </div>
+      </Shell>
+    );
+  }
 
-        <div className="flex items-center gap-4">
-  {/* Questions */}
-  <div className="flex items-center gap-2">
-    <span className="mr-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-      Questions
-    </span>
+  // ====================================================
+  // ERROR
+  // ====================================================
 
-    {section.questions.map((questionItem, index) => (
-      <button
-        key={questionItem.id}
-        type="button"
-        onClick={() => handleQuestionChange(index)}
-        title={`Question ${index + 1}`}
-        className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-bold transition ${
-          index === currentQuestion
-            ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-400/20"
-            : submitted[questionItem.id]
-            ? "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/20"
-            : "border border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/10 hover:text-white"
-        }`}
-      >
-        {submitted[questionItem.id] ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : (
-          index + 1
-        )}
-      </button>
-    ))}
-  </div>
-
-  {/* Points */}
-  <div className="rounded-xl bg-cyan-400/10 px-4 py-2 text-xs font-bold text-cyan-300">
-    {question.points} Points
-  </div>
-</div>
-      </div>
-
-
-      {/* ==================================================
-          QUESTION + CODE WORKSPACE
-      ================================================== */}
-      <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[42%_58%]">
-
-        {/* ==================================================
-            LEFT - CHALLENGE
-        ================================================== */}
-        <div className="modal-scrollbar min-h-0 overflow-y-auto border-r border-white/10 bg-[#070d1c]">
-
-          <div className="p-6 lg:p-8">
-
-            {/* Challenge heading */}
-            <div className="flex items-start justify-between gap-4">
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-                  Challenge
-                </p>
-
-                <h2 className="mt-2 text-2xl font-black leading-tight text-white">
-                  {question.title}
-                </h2>
-              </div>
-
-              <span className="shrink-0 rounded-full bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-300">
-                {question.difficulty}
-              </span>
-
+  if (error) {
+    return (
+      <Shell>
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#020617] p-6">
+          <div className="w-full max-w-lg rounded-3xl border border-red-400/20 bg-red-400/[0.04] p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-400/10">
+              <AlertCircle className="h-7 w-7 text-red-400" />
             </div>
 
+            <h2 className="mt-5 text-xl font-black text-white">
+              Unable to load assessment
+            </h2>
 
-            {/* Problem */}
-            <div className="mt-8">
-
-              <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                Problem
-              </p>
-
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                {question.problem}
-              </p>
-
-            </div>
-
-
-            {/* Instructions */}
-            <div className="mt-7 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
-
-              <div className="flex items-center gap-2">
-
-                <Lightbulb className="h-4 w-4 text-cyan-400" />
-
-                <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">
-                  Instructions
-                </p>
-
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-slate-400">
-                {question.instructions}
-              </p>
-
-            </div>
-
-
-            {/* Language / Difficulty */}
-            <div className="mt-6 flex flex-wrap gap-2">
-
-              <span className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
-                {question.language}
-              </span>
-
-              <span className="rounded-lg border border-violet-400/10 bg-violet-400/[0.05] px-3 py-1.5 text-xs font-semibold text-violet-300">
-                {question.difficulty}
-              </span>
-
-              <span className="rounded-lg border border-emerald-400/10 bg-emerald-400/[0.05] px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                {question.points} Points
-              </span>
-
-            </div>
-
-          </div>
-        </div>
-
-
-        {/* ==================================================
-            RIGHT - CODE EDITOR
-        ================================================== */}
-        <div className="flex min-h-0 overflow-hidden flex-col bg-[#0b1120]">
-
-          {/* Editor header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
-
-            <div className="flex items-center gap-3">
-
-              <Code2 className="h-4 w-4 text-cyan-400" />
-
-              <span className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-xs font-bold text-slate-300">
-                {question.language}
-              </span>
-
-            </div>
-
-            <span className="text-[11px] font-medium text-slate-600">
-              Coding Workspace
-            </span>
-
-          </div>
-
-
-          {/* Code editor */}
-          <div className="min-h-0 flex-1 overflow-hidden">
-
-           <textarea
-  value={currentCode}
-  onChange={(e) => {
-    setCode(e.target.value);
-    setRunMessage("");
-  }}
-  spellCheck={false}
-  className="modal-scrollbar block h-full min-h-0 w-full resize-none border-0 bg-[#080d19] p-5 font-mono text-sm leading-7 text-slate-200 outline-none"
-/>
-
-          </div>
-
-
-          {/* ==================================================
-              TEST CASES / OUTPUT
-          ================================================== */}
-          <div className="shrink-0 border-t border-white/10 bg-[#080d19]">
-
-            <div className="flex items-center gap-6 border-b border-white/10 px-5 py-3">
-
-              <button
-                type="button"
-                className="border-b-2 border-cyan-400 pb-2 text-xs font-bold text-cyan-400"
-              >
-                TEST CASES
-              </button>
-
-              <button
-                type="button"
-                className="pb-2 text-xs font-bold text-slate-500 hover:text-slate-300"
-              >
-                OUTPUT
-              </button>
-
-            </div>
-
-
-            <div className="h-[105px] overflow-auto p-5">
-
-              {runMessage ? (
-                <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] p-4">
-                  <p className="text-xs leading-6 text-slate-400">
-                    {runMessage}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                      Test Case
-                    </p>
-
-                    <div className="mt-2 rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-400">
-                      Sample Input
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                      Expected Output
-                    </p>
-
-                    <div className="mt-2 rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-xs text-emerald-300">
-                      Sample Output
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-
-          </div>
-
-
-          {/* ==================================================
-              EDITOR ACTIONS
-          ================================================== */}
-          <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-4">
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              {error}
+            </p>
 
             <button
               type="button"
-              onClick={() => {
-                setCode("");
-                setRunMessage("");
-              }}
-              className="text-xs font-semibold text-slate-500 transition hover:text-white"
+              onClick={handleRetry}
+              disabled={retrying}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100 disabled:opacity-50"
             >
-              Reset Code
+              <RefreshCw
+                className={`h-4 w-4 ${
+                  retrying ? "animate-spin" : ""
+                }`}
+              />
+
+              Try Again
             </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
 
-            <div className="flex items-center gap-3">
+  // ====================================================
+  // NO QUESTIONS
+  // ====================================================
 
-              <button
-                type="button"
-                onClick={handleRunCode}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-              >
-                <Play className="h-4 w-4" />
-                Run Code
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:opacity-90"
-              >
-                <Send className="h-4 w-4" />
-                Submit
-              </button>
-
+  if (!totalQuestions) {
+    return (
+      <Shell>
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#020617] p-6">
+          <div className="max-w-lg text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cyan-400/10">
+              <AlertCircle className="h-8 w-8 text-cyan-400" />
             </div>
 
+            <h1 className="mt-6 text-2xl font-black text-white">
+              No assessment questions available
+            </h1>
+
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Your administrator has not created any
+              active skill assessment questions yet.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-100"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ====================================================
+  // CATEGORY SCREEN
+  // ====================================================
+
+  if (!selectedCategoryId) {
+    return (
+      <Shell>
+        <div className="min-h-[calc(100vh-80px)] bg-[#020617] p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-400">
+              Test Your Skills
+            </p>
+
+            <h1 className="mt-3 text-3xl font-black text-white lg:text-4xl">
+              Skill Assessment
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              Choose a category to start your assessment.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-400">
+                {categories.length} Categories
+              </div>
+
+              <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] px-4 py-2 text-sm text-cyan-300">
+                {totalQuestions} Questions
+              </div>
+
+              <div className="rounded-xl border border-emerald-400/10 bg-emerald-400/[0.04] px-4 py-2 text-sm text-emerald-300">
+                {completedQuestions} Completed
+              </div>
+            </div>
           </div>
 
+          <div className="mx-auto mt-10 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {categories.map((category, index) => {
+              const Icon = category.icon;
+
+              const questionCount =
+                category.questions?.length || 0;
+
+              const totalPoints =
+                category.questions?.reduce(
+                  (total, item) =>
+                    total + Number(item.points || 0),
+                  0
+                ) || 0;
+
+              return (
+                <motion.div
+                  key={category.id}
+                  initial={{
+                    opacity: 0,
+                    y: 12,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: index * 0.08,
+                  }}
+                  className="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/10 via-violet-500/10 to-slate-900 p-6"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
+                    <Icon className="h-6 w-6" />
+                  </div>
+
+                  <h2 className="mt-5 text-xl font-bold text-white">
+                    {category.name}
+                  </h2>
+
+                  <p className="mt-3 min-h-[48px] text-sm leading-6 text-slate-400">
+                    {category.description}
+                  </p>
+
+                  <div className="mt-5 flex items-center justify-between text-sm text-slate-400">
+                    <span>
+                      {questionCount} Questions
+                    </span>
+
+                    <span>
+                      {totalPoints} Points
+                    </span>
+                  </div>
+
+                  {category.loadError ? (
+                    <div className="mt-5 rounded-xl border border-red-400/10 bg-red-400/[0.04] p-3 text-xs text-red-300">
+                      Unable to load this category.
+                    </div>
+                  ) : questionCount === 0 ? (
+                    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-slate-500">
+                      No active questions available.
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCategoryChange(
+                          category.id
+                        )
+                      }
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-100"
+                    >
+                      <Play className="h-4 w-4" />
+
+                      Start Assessment
+
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ====================================================
+  // QUESTION SAFETY
+  // ====================================================
+
+  if (!selectedCategory || !question) {
+    return (
+      <Shell>
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#020617]">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-10 w-10 text-red-400" />
+
+            <h2 className="mt-4 text-xl font-bold text-white">
+              Question unavailable
+            </h2>
+
+            <button
+              type="button"
+              onClick={handleBackToCategories}
+              className="mt-5 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950"
+            >
+              Back to Categories
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ====================================================
+  // WORKSPACE
+  // ====================================================
+
+  return (
+    <Shell>
+      <div className="relative flex h-[calc(100vh-80px)] min-h-0 flex-col overflow-hidden bg-[#020617]">
+
+        {/* ==================================================
+            TOP NAV
+        ================================================== */}
+
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
+          <button
+            type="button"
+            onClick={handleBackToCategories}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+
+            Categories
+          </button>
+
+          <div className="hidden items-center gap-3 sm:flex">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Progress
+            </span>
+
+            <span className="text-sm font-bold text-cyan-300">
+              {completedQuestions} /{" "}
+              {totalQuestions}
+            </span>
+          </div>
         </div>
 
-      </div>
+        {/* ==================================================
+            ASSESSMENT HEADER
+        ================================================== */}
 
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
+          <div className="flex items-center gap-4">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-400/10 text-cyan-400 ring-1 ring-cyan-400/20">
+              <Code2 className="h-5 w-5" />
+            </div>
 
-      {/* ==================================================
-          BOTTOM NAVIGATION
-      ================================================== */}
-      <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+                Skill Assessment
+              </p>
 
-        <button
-          type="button"
-          disabled={
-  currentQuestion === 0 &&
-  selectedSection === SECTIONS[0].id
-}
-onClick={handlePrevious}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Previous
-        </button>
+              <h1 className="text-lg font-black text-white">
+                {selectedCategory.name}
+              </h1>
+            </div>
+          </div>
 
+          {/* QUESTION NUMBERS */}
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="mr-2 hidden text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:inline">
+              Questions
+            </span>
 
-          {section.questions.map((item, index) => (
-
-            <span
-              key={item.id}
-              className={`h-1.5 rounded-full transition-all ${
-                index === currentQuestion
-                  ? "w-8 bg-cyan-400"
-                  : submitted[item.id]
-                  ? "w-5 bg-emerald-400"
-                  : "w-5 bg-white/10"
-              }`}
-            />
-
-          ))}
-
+            {selectedCategory.questions.map(
+              (questionItem, index) => (
+                <button
+                  key={questionItem.id}
+                  type="button"
+                  onClick={() =>
+                    handleQuestionChange(index)
+                  }
+                  title={`Question ${index + 1}`}
+                  className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition ${
+                    index === currentQuestion
+                      ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-400/20"
+                      : submitted[
+                          questionItem.id
+                        ]
+                      ? "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/20"
+                      : "border border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {submitted[
+                    questionItem.id
+                  ] ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    index + 1
+                  )}
+                </button>
+              )
+            )}
+          </div>
         </div>
 
+        {/* ==================================================
+            QUESTION + CODE
+        ================================================== */}
 
-       <button
-  type="button"
-  onClick={handleNext}
-  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
->
-  {currentQuestion === section.questions.length - 1
-    ? selectedSection === SECTIONS[SECTIONS.length - 1].id
-      ? "Finish"
-      : "Next Section"
-    : "Next"}
+        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[42%_58%]">
 
-  <ArrowRight className="h-4 w-4" />
-</button>
+          {/* ==================================================
+              LEFT - QUESTION
+          ================================================== */}
 
+          <div className="min-h-0 overflow-y-auto border-r border-white/10 bg-[#070d1c]">
+            <div className="p-6 lg:p-8">
+
+              {/* Challenge */}
+
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+                    Challenge {currentQuestion + 1}
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black leading-tight text-white">
+                    {question.title}
+                  </h2>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-300">
+                  {question.difficulty}
+                </span>
+              </div>
+
+              {/* Problem */}
+
+              <div className="mt-8">
+                <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  Problem
+                </p>
+
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                  {question.problem}
+                </p>
+              </div>
+
+              {/* Instructions */}
+
+              {question.instructions && (
+                <div className="mt-7 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-cyan-400" />
+
+                    <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                      Instructions
+                    </p>
+                  </div>
+
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-400">
+                    {question.instructions}
+                  </p>
+                </div>
+              )}
+
+              {/* Metadata */}
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                <span className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
+                  {question.language}
+                </span>
+
+                <span className="rounded-lg border border-violet-400/10 bg-violet-400/[0.05] px-3 py-1.5 text-xs font-semibold text-violet-300">
+                  {question.difficulty}
+                </span>
+
+                <span className="rounded-lg border border-emerald-400/10 bg-emerald-400/[0.05] px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                  {question.points} Points
+                </span>
+              </div>
+
+              {/* Assessment note */}
+
+              <div className="mt-8 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Assessment
+                </p>
+
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Submit your solution when you
+                  are ready. Your answer will be
+                  evaluated according to the
+                  assessment criteria configured
+                  by your administrator.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ==================================================
+              RIGHT - CODE EDITOR
+          ================================================== */}
+
+          <div className="flex min-h-0 flex-col overflow-hidden bg-[#0b1120]">
+
+            {/* Editor Header */}
+
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
+              <div className="flex items-center gap-3">
+                <Code2 className="h-4 w-4 text-cyan-400" />
+
+                <span className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-xs font-bold text-slate-300">
+                  {question.language}
+                </span>
+              </div>
+
+              <span className="text-[11px] font-medium text-slate-600">
+                Coding Workspace
+              </span>
+            </div>
+
+            {/* Code Editor */}
+
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <textarea
+                value={code}
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setRunMessage("");
+                }}
+                spellCheck={false}
+                disabled={
+                  running || submitting
+                }
+                className="block h-full min-h-0 w-full resize-none border-0 bg-[#080d19] p-5 font-mono text-sm leading-7 text-slate-200 outline-none disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </div>
+
+            {/* OUTPUT */}
+
+            <div className="shrink-0 border-t border-white/10 bg-[#080d19]">
+              <div className="flex items-center gap-6 border-b border-white/10 px-5 py-3">
+                <span className="border-b-2 border-cyan-400 pb-2 text-xs font-bold text-cyan-400">
+                  OUTPUT
+                </span>
+              </div>
+
+              <div className="h-[105px] overflow-auto p-5">
+                {runMessage ? (
+                  <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] p-4">
+                    <pre className="whitespace-pre-wrap text-xs leading-6 text-slate-400">
+                      {runMessage}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-600">
+                    Run or submit your solution
+                    to see the result.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+
+            <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-4">
+
+              {/* RESET */}
+
+              <button
+                type="button"
+                onClick={handleResetCode}
+                disabled={
+                  running || submitting
+                }
+                className="text-xs font-semibold text-slate-500 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Reset Code
+              </button>
+
+              <div className="flex items-center gap-3">
+
+                {/* RUN */}
+
+                <button
+                  type="button"
+                  onClick={handleRunCode}
+                  disabled={
+                    running ||
+                    submitting ||
+                    submitted[question.id]
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-bold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {running ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+
+                  {running
+                    ? "Running..."
+                    : "Run Code"}
+                </button>
+
+                {/* SUBMIT */}
+
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={
+                    submitting ||
+                    running ||
+                    submitted[question.id]
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/10 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {submitted[question.id] ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Submitted
+                    </>
+                  ) : submitting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Submit
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ==================================================
+            BOTTOM NAVIGATION
+        ================================================== */}
+
+        <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-3">
+
+          {/* PREVIOUS */}
+
+          <button
+            type="button"
+            disabled={
+              currentQuestion === 0 &&
+              categories.findIndex(
+                (category) =>
+                  category.id ===
+                  selectedCategory.id
+              ) === 0
+            }
+            onClick={handlePrevious}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ArrowLeft className="h-4 w-4" />
+
+            Previous
+          </button>
+
+          {/* PROGRESS DOTS */}
+
+          <div className="hidden items-center gap-2 sm:flex">
+            {selectedCategory.questions.map(
+              (item, index) => (
+                <span
+                  key={item.id}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === currentQuestion
+                      ? "w-8 bg-cyan-400"
+                      : submitted[item.id]
+                      ? "w-5 bg-emerald-400"
+                      : "w-5 bg-white/10"
+                  }`}
+                />
+              )
+            )}
+          </div>
+
+          {/* NEXT */}
+
+          <button
+            type="button"
+            onClick={handleNext}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            {currentQuestion ===
+            selectedCategory.questions.length - 1
+              ? "Next Section"
+              : "Next"}
+
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* ==================================================
+            FINISHED
+        ================================================== */}
+
+        {assessmentFinished && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#020617]/90 p-6 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-3xl border border-emerald-400/20 bg-[#0b1120] p-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/10">
+                <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+              </div>
+
+              <h2 className="mt-5 text-2xl font-black text-white">
+                Assessment Completed
+              </h2>
+
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                You have completed all available
+                skill assessment questions.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleBackToCategories}
+                className="mt-6 rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-100"
+              >
+                Back to Categories
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-    </div>
-  </Shell>
-);
+    </Shell>
+  );
 }
