@@ -13,10 +13,24 @@ import {
   Briefcase,
   RefreshCw,
   AlertCircle,
+  X,
 } from "lucide-react";
 
 import Shell from "@/features/skillhub/components/Shell";
 import { api } from "../../../services/api";
+
+// ======================================================
+// LANGUAGE OPTIONS
+// ======================================================
+
+const LANGUAGE_OPTIONS = [
+  "Java",
+  "Python",
+  "JavaScript",
+  "C",
+  "C++",
+  "SQL",
+];
 
 // ======================================================
 // CATEGORY ICON
@@ -71,8 +85,6 @@ const normalizeQuestion = (question) => ({
 
   starterCode: question.starter_code || "",
 
-  // These are kept internally only.
-  // They are NOT shown to the student.
   expectedOutput: question.expected_answer || "",
   evaluationCriteria: question.evaluation_criteria || "",
 
@@ -121,7 +133,6 @@ const formatApiResult = (result, fallbackMessage) => {
     return String(result);
   }
 
-  // Common response fields
   const directMessage =
     result?.message ??
     result?.feedback ??
@@ -151,34 +162,73 @@ export default function SkillAssessment() {
   // ====================================================
 
   const [categories, setCategories] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
-
   const [retrying, setRetrying] = useState(false);
 
   // ====================================================
   // ASSESSMENT STATE
   // ====================================================
 
-  const [selectedCategoryId, setSelectedCategoryId] =
-    useState(null);
-
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
   const [code, setCode] = useState("");
-
   const [submitted, setSubmitted] = useState({});
 
   const [runMessage, setRunMessage] = useState("");
-
   const [running, setRunning] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
 
-  const [assessmentFinished, setAssessmentFinished] =
-    useState(false);
+  const [assessmentFinished, setAssessmentFinished] = useState(false);
+
+  // ====================================================
+  // LANGUAGE STATE
+  // ====================================================
+
+  const [selectedLanguage, setSelectedLanguage] = useState("Java");
+
+  // ====================================================
+  // NOTIFICATION STATE
+  // ====================================================
+
+  const [notification, setNotification] = useState({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  // ====================================================
+  // SHOW NOTIFICATION
+  // ====================================================
+
+  const showNotification = (message, type = "success") => {
+    setNotification({
+      show: true,
+      type,
+      message,
+    });
+
+    setTimeout(() => {
+      setNotification({
+        show: false,
+        type: "success",
+        message: "",
+      });
+    }, 3000);
+  };
+
+  // ====================================================
+  // CLOSE NOTIFICATION
+  // ====================================================
+
+  const closeNotification = () => {
+    setNotification({
+      show: false,
+      type: "success",
+      message: "",
+    });
+  };
 
   // ====================================================
   // LOAD ASSESSMENT
@@ -196,12 +246,11 @@ export default function SkillAssessment() {
       const categoryResponse =
         await api.getSkillAssessmentCategories();
 
-      const rawCategories =
-        Array.isArray(categoryResponse)
-          ? categoryResponse
-          : Array.isArray(categoryResponse?.data)
-          ? categoryResponse.data
-          : [];
+      const rawCategories = Array.isArray(categoryResponse)
+        ? categoryResponse
+        : Array.isArray(categoryResponse?.data)
+        ? categoryResponse.data
+        : [];
 
       if (!rawCategories.length) {
         setCategories([]);
@@ -219,61 +268,54 @@ export default function SkillAssessment() {
       // GET QUESTIONS FOR EACH CATEGORY
       // ------------------------------------------------
 
-      const categoriesWithQuestions =
-        await Promise.all(
-          normalizedCategories.map(
-            async (category) => {
-              try {
-                const response =
-                  await api.getSkillAssessmentCategoryQuestions(
-                    category.id
-                  );
+      const categoriesWithQuestions = await Promise.all(
+        normalizedCategories.map(async (category) => {
+          try {
+            const response =
+              await api.getSkillAssessmentCategoryQuestions(
+                category.id
+              );
 
-                const rawQuestions =
-                  Array.isArray(response)
-                    ? response
-                    : Array.isArray(response?.data)
-                    ? response.data
-                    : [];
+            const rawQuestions = Array.isArray(response)
+              ? response
+              : Array.isArray(response?.data)
+              ? response.data
+              : [];
 
-                const questions =
-                  rawQuestions
-                    .filter(
-                      (question) =>
-                        question.is_active !== false
-                    )
-                    .sort(
-                      (a, b) =>
-                        (a.question_order ?? 0) -
-                        (b.question_order ?? 0)
-                    )
-                    .map(normalizeQuestion);
+            const questions = rawQuestions
+              .filter(
+                (question) =>
+                  question.is_active !== false
+              )
+              .sort(
+                (a, b) =>
+                  (a.question_order ?? 0) -
+                  (b.question_order ?? 0)
+              )
+              .map(normalizeQuestion);
 
-                return {
-                  ...category,
-                  questions,
-                };
-              } catch (categoryError) {
-                console.error(
-                  `Failed to load questions for category ${category.id}`,
-                  categoryError
-                );
+            return {
+              ...category,
+              questions,
+            };
+          } catch (categoryError) {
+            console.error(
+              `Failed to load questions for category ${category.id}`,
+              categoryError
+            );
 
-                return {
-                  ...category,
-                  questions: [],
-                  loadError:
-                    categoryError?.response?.data
-                      ?.detail ||
-                    categoryError?.response?.data
-                      ?.message ||
-                    categoryError?.message ||
-                    "Unable to load questions.",
-                };
-              }
-            }
-          )
-        );
+            return {
+              ...category,
+              questions: [],
+              loadError:
+                categoryError?.response?.data?.detail ||
+                categoryError?.response?.data?.message ||
+                categoryError?.message ||
+                "Unable to load questions.",
+            };
+          }
+        })
+      );
 
       setCategories(categoriesWithQuestions);
     } catch (err) {
@@ -373,6 +415,21 @@ export default function SkillAssessment() {
     const firstQuestion = category.questions?.[0];
 
     setCode(firstQuestion?.starterCode || "");
+
+    setSelectedLanguage(
+      firstQuestion?.language || "Java"
+    );
+  };
+
+  // ====================================================
+  // CHANGE LANGUAGE
+  // ====================================================
+
+  const handleLanguageChange = (event) => {
+    const language = event.target.value;
+
+    setSelectedLanguage(language);
+    setRunMessage("");
   };
 
   // ====================================================
@@ -398,6 +455,10 @@ export default function SkillAssessment() {
 
     setCode(nextQuestion?.starterCode || "");
 
+    setSelectedLanguage(
+      nextQuestion?.language || "Java"
+    );
+
     setRunMessage("");
   };
 
@@ -414,18 +475,10 @@ export default function SkillAssessment() {
       currentQuestion ===
       selectedCategory.questions.length - 1;
 
-    // -----------------------------------------------
-    // NEXT QUESTION
-    // -----------------------------------------------
-
     if (!isLastQuestion) {
       handleQuestionChange(currentQuestion + 1);
       return;
     }
-
-    // -----------------------------------------------
-    // NEXT CATEGORY
-    // -----------------------------------------------
 
     const currentCategoryIndex =
       categories.findIndex(
@@ -441,11 +494,18 @@ export default function SkillAssessment() {
       );
 
     if (nextCategory) {
+      const nextQuestion =
+        nextCategory.questions[0];
+
       setSelectedCategoryId(nextCategory.id);
       setCurrentQuestion(0);
 
       setCode(
-        nextCategory.questions[0]?.starterCode || ""
+        nextQuestion?.starterCode || ""
+      );
+
+      setSelectedLanguage(
+        nextQuestion?.language || "Java"
       );
 
       setRunMessage("");
@@ -453,14 +513,15 @@ export default function SkillAssessment() {
       return;
     }
 
-    // -----------------------------------------------
-    // FINISHED
-    // -----------------------------------------------
-
     setAssessmentFinished(true);
 
     setRunMessage(
       "Assessment completed successfully."
+    );
+
+    showNotification(
+      "Assessment completed successfully!",
+      "success"
     );
   };
 
@@ -473,18 +534,10 @@ export default function SkillAssessment() {
       return;
     }
 
-    // -----------------------------------------------
-    // PREVIOUS QUESTION
-    // -----------------------------------------------
-
     if (currentQuestion > 0) {
       handleQuestionChange(currentQuestion - 1);
       return;
     }
-
-    // -----------------------------------------------
-    // PREVIOUS CATEGORY
-    // -----------------------------------------------
 
     const currentCategoryIndex =
       categories.findIndex(
@@ -526,6 +579,10 @@ export default function SkillAssessment() {
       previousQuestion?.starterCode || ""
     );
 
+    setSelectedLanguage(
+      previousQuestion?.language || "Java"
+    );
+
     setRunMessage("");
   };
 
@@ -536,11 +593,23 @@ export default function SkillAssessment() {
   const handleRunCode = async () => {
     if (!question?.id) {
       setRunMessage("Question ID is missing.");
+
+      showNotification(
+        "Question ID is missing.",
+        "error"
+      );
+
       return;
     }
 
     if (!code.trim()) {
       setRunMessage("Please enter some code first.");
+
+      showNotification(
+        "Please enter some code first.",
+        "error"
+      );
+
       return;
     }
 
@@ -548,27 +617,10 @@ export default function SkillAssessment() {
       setRunning(true);
       setRunMessage("Running code...");
 
-      /*
-       * IMPORTANT:
-       *
-       * Skill Assessment uses:
-       *
-       * POST
-       * /skill-assessment/questions/{question_id}/run
-       *
-       * Body:
-       * {
-       *   language: "...",
-       *   code: "..."
-       * }
-       *
-       * No checkpoint_id is required.
-       */
-
       const result =
         await api.runSkillAssessmentQuestion(
           question.id,
-          question.language || "Java",
+          selectedLanguage,
           code
         );
 
@@ -596,6 +648,11 @@ export default function SkillAssessment() {
         "Failed to run code.";
 
       setRunMessage(String(message));
+
+      showNotification(
+        String(message),
+        "error"
+      );
     } finally {
       setRunning(false);
     }
@@ -608,11 +665,23 @@ export default function SkillAssessment() {
   const handleSubmit = async () => {
     if (!question?.id) {
       setRunMessage("Question ID is missing.");
+
+      showNotification(
+        "Question ID is missing.",
+        "error"
+      );
+
       return;
     }
 
     if (!code.trim()) {
       setRunMessage("Please enter some code first.");
+
+      showNotification(
+        "Please enter some code first.",
+        "error"
+      );
+
       return;
     }
 
@@ -620,27 +689,14 @@ export default function SkillAssessment() {
       setSubmitting(true);
       setRunMessage("Submitting solution...");
 
-      /*
-       * IMPORTANT:
-       *
-       * Skill Assessment uses:
-       *
-       * POST
-       * /skill-assessment/questions/{question_id}/submit
-       *
-       * Body:
-       * {
-       *   language: "...",
-       *   code: "..."
-       * }
-       *
-       * No checkpoint_id is required.
-       */
+      // ==================================================
+      // BACKEND API CALL
+      // ==================================================
 
       const result =
         await api.submitSkillAssessmentQuestion(
           question.id,
-          question.language || "Java",
+          selectedLanguage,
           code
         );
 
@@ -649,6 +705,10 @@ export default function SkillAssessment() {
         result
       );
 
+      // ==================================================
+      // SHOW API RESULT
+      // ==================================================
+
       setRunMessage(
         formatApiResult(
           result,
@@ -656,11 +716,23 @@ export default function SkillAssessment() {
         )
       );
 
-      // Mark question as submitted
+      // ==================================================
+      // MARK QUESTION AS SUBMITTED
+      // ==================================================
+
       setSubmitted((previous) => ({
         ...previous,
         [question.id]: true,
       }));
+
+      // ==================================================
+      // SUCCESS NOTIFICATION
+      // ==================================================
+
+      showNotification(
+        "Question submitted successfully!",
+        "success"
+      );
     } catch (error) {
       console.error(
         "Skill assessment submit failed:",
@@ -674,6 +746,11 @@ export default function SkillAssessment() {
         "Failed to submit solution.";
 
       setRunMessage(String(message));
+
+      showNotification(
+        String(message),
+        "error"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -685,6 +762,11 @@ export default function SkillAssessment() {
 
   const handleResetCode = () => {
     setCode(question?.starterCode || "");
+
+    setSelectedLanguage(
+      question?.language || "Java"
+    );
+
     setRunMessage("");
   };
 
@@ -705,6 +787,7 @@ export default function SkillAssessment() {
     setSelectedCategoryId(null);
     setCurrentQuestion(0);
     setCode("");
+    setSelectedLanguage("Java");
     setRunMessage("");
     setAssessmentFinished(false);
   };
@@ -971,6 +1054,75 @@ export default function SkillAssessment() {
       <div className="relative flex h-[calc(100vh-80px)] min-h-0 flex-col overflow-hidden bg-[#020617]">
 
         {/* ==================================================
+            SUCCESS / ERROR NOTIFICATION
+        ================================================== */}
+
+        {notification.show && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: -20,
+              x: 20,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              x: 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: -20,
+              x: 20,
+            }}
+            className={`fixed right-5 top-5 z-[9999] flex w-[360px] max-w-[calc(100vw-40px)] items-start gap-3 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl ${
+              notification.type === "success"
+                ? "border-emerald-400/20 bg-[#071a14]/95"
+                : "border-red-400/20 bg-[#1a0808]/95"
+            }`}
+          >
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                notification.type === "success"
+                  ? "bg-emerald-400/10"
+                  : "bg-red-400/10"
+              }`}
+            >
+              {notification.type === "success" ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p
+                className={`text-sm font-bold ${
+                  notification.type === "success"
+                    ? "text-emerald-300"
+                    : "text-red-300"
+                }`}
+              >
+                {notification.type === "success"
+                  ? "Success"
+                  : "Error"}
+              </p>
+
+              <p className="mt-1 text-sm leading-5 text-slate-300">
+                {notification.message}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeNotification}
+              className="rounded-lg p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* ==================================================
             TOP NAV
         ================================================== */}
 
@@ -981,7 +1133,6 @@ export default function SkillAssessment() {
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-
             Categories
           </button>
 
@@ -991,8 +1142,7 @@ export default function SkillAssessment() {
             </span>
 
             <span className="text-sm font-bold text-cyan-300">
-              {completedQuestions} /{" "}
-              {totalQuestions}
+              {completedQuestions} / {totalQuestions}
             </span>
           </div>
         </div>
@@ -1063,14 +1213,10 @@ export default function SkillAssessment() {
 
         <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[42%_58%]">
 
-          {/* ==================================================
-              LEFT - QUESTION
-          ================================================== */}
+          {/* LEFT */}
 
           <div className="min-h-0 overflow-y-auto border-r border-white/10 bg-[#070d1c]">
             <div className="p-6 lg:p-8">
-
-              {/* Challenge */}
 
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -1088,8 +1234,6 @@ export default function SkillAssessment() {
                 </span>
               </div>
 
-              {/* Problem */}
-
               <div className="mt-8">
                 <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">
                   Problem
@@ -1099,8 +1243,6 @@ export default function SkillAssessment() {
                   {question.problem}
                 </p>
               </div>
-
-              {/* Instructions */}
 
               {question.instructions && (
                 <div className="mt-7 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
@@ -1118,11 +1260,9 @@ export default function SkillAssessment() {
                 </div>
               )}
 
-              {/* Metadata */}
-
               <div className="mt-6 flex flex-wrap gap-2">
                 <span className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
-                  {question.language}
+                  {selectedLanguage}
                 </span>
 
                 <span className="rounded-lg border border-violet-400/10 bg-violet-400/[0.05] px-3 py-1.5 text-xs font-semibold text-violet-300">
@@ -1133,8 +1273,6 @@ export default function SkillAssessment() {
                   {question.points} Points
                 </span>
               </div>
-
-              {/* Assessment note */}
 
               <div className="mt-8 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -1152,21 +1290,42 @@ export default function SkillAssessment() {
             </div>
           </div>
 
-          {/* ==================================================
-              RIGHT - CODE EDITOR
-          ================================================== */}
+          {/* RIGHT */}
 
           <div className="flex min-h-0 flex-col overflow-hidden bg-[#0b1120]">
 
-            {/* Editor Header */}
+            {/* ==================================================
+                EDITOR HEADER
+            ================================================== */}
 
             <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b1120] px-5 py-3">
               <div className="flex items-center gap-3">
                 <Code2 className="h-4 w-4 text-cyan-400" />
 
-                <span className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-xs font-bold text-slate-300">
-                  {question.language}
-                </span>
+                {/* LANGUAGE DROPDOWN */}
+
+                <select
+                  value={selectedLanguage}
+                  onChange={handleLanguageChange}
+                  disabled={
+                    running ||
+                    submitting ||
+                    submitted[question.id]
+                  }
+                  className="cursor-pointer rounded-lg border border-white/10 bg-[#182235] px-3 py-1.5 text-xs font-bold text-slate-300 outline-none transition hover:border-cyan-400/40 focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {LANGUAGE_OPTIONS.map(
+                    (language) => (
+                      <option
+                        key={language}
+                        value={language}
+                        className="bg-[#182235] text-white"
+                      >
+                        {language}
+                      </option>
+                    )
+                  )}
+                </select>
               </div>
 
               <span className="text-[11px] font-medium text-slate-600">
@@ -1174,7 +1333,9 @@ export default function SkillAssessment() {
               </span>
             </div>
 
-            {/* Code Editor */}
+            {/* ==================================================
+                CODE EDITOR
+            ================================================== */}
 
             <div className="min-h-0 flex-1 overflow-hidden">
               <textarea
@@ -1191,7 +1352,9 @@ export default function SkillAssessment() {
               />
             </div>
 
-            {/* OUTPUT */}
+            {/* ==================================================
+                OUTPUT
+            ================================================== */}
 
             <div className="shrink-0 border-t border-white/10 bg-[#080d19]">
               <div className="flex items-center gap-6 border-b border-white/10 px-5 py-3">
@@ -1216,11 +1379,11 @@ export default function SkillAssessment() {
               </div>
             </div>
 
-            {/* ACTIONS */}
+            {/* ==================================================
+                ACTIONS
+            ================================================== */}
 
             <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-4">
-
-              {/* RESET */}
 
               <button
                 type="button"
@@ -1298,8 +1461,6 @@ export default function SkillAssessment() {
 
         <div className="flex shrink-0 items-center justify-between border-t border-white/10 bg-[#0b1120] px-5 py-3">
 
-          {/* PREVIOUS */}
-
           <button
             type="button"
             disabled={
@@ -1314,11 +1475,8 @@ export default function SkillAssessment() {
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ArrowLeft className="h-4 w-4" />
-
             Previous
           </button>
-
-          {/* PROGRESS DOTS */}
 
           <div className="hidden items-center gap-2 sm:flex">
             {selectedCategory.questions.map(
@@ -1336,8 +1494,6 @@ export default function SkillAssessment() {
               )
             )}
           </div>
-
-          {/* NEXT */}
 
           <button
             type="button"

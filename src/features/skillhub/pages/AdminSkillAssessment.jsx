@@ -255,13 +255,22 @@ export default function AdminSkillAssessment() {
         setLoadingCategories(true);
 
         const response =
-          await api.getSkillAssessmentCategories();
+  await api.getSkillAssessmentCategories();
+
+console.log(
+  "SKILL ASSESSMENT CATEGORIES RESPONSE:",
+  response
+);
 
         const data = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
+  ? response
+  : Array.isArray(response?.data)
+  ? response.data
+  : Array.isArray(response?.categories)
+  ? response.categories
+  : Array.isArray(response?.data?.categories)
+  ? response.data.categories
+  : [];
 
         if (!mounted) {
           return;
@@ -865,13 +874,35 @@ export default function AdminSkillAssessment() {
       return;
     }
 
-    if (!window.confirm("Are you sure you want to delete this question?")) {
+   if (!question?.id) {
+  alert("Question ID is missing.");
   return;
 }
 
-    if (!confirmed) {
-      return;
-    }
+const confirmed = window.confirm(
+  "Are you sure you want to delete this question?"
+);
+
+if (!confirmed) {
+  return;
+}
+
+try {
+  setDeletingId(question.id);
+
+  await api.deleteSkillAssessmentQuestion(question.id);
+
+  setQuestions((previous) => ({
+    ...previous,
+    [selectedSection]: previous[selectedSection].filter(
+      (item) => item.id !== question.id
+    ),
+  }));
+
+  alert("Question deleted successfully.");
+} catch (error) {
+  // ...
+}
 
     try {
       setDeletingId(question.id);
